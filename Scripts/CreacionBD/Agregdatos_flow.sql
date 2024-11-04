@@ -258,3 +258,12 @@ VALUES (
     'pedro.diaz@mail.com', 
     (SELECT TOP 1 id_venta FROM Venta ORDER BY fecha DESC)  -- Subconsulta para obtener la venta más reciente
 );
+
+-- Insertar un vehículo y asignarle una marca existente
+INSERT INTO Vehiculo (modelo, año, precio, id_marca)
+VALUES (
+    'Ford Fiesta', 
+    2021, 
+    15000.00, 
+    (SELECT id FROM Marca WHERE nombre = 'Ford')  -- Subconsulta para obtener el id de la marca
+);
