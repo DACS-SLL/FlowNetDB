@@ -293,3 +293,13 @@ VALUES (
     50, 
     'Av. Principal 456'
 );
+
+-- Insertar un contrato de compra asociado a un cliente y su fecha de compra mas reciente
+INSERT INTO Contrato_de_Compra (id_cliente, fecha, politicas)
+VALUES (
+    (SELECT id FROM Cliente WHERE nombre = 'Sofía Martínez'),  -- Subconsulta para obtener el id del cliente
+    (SELECT TOP 1 fecha FROM Venta WHERE id_cliente = (SELECT id FROM Cliente WHERE nombre = 'Sofía Martínez') ORDER BY fecha DESC),  -- Subconsulta para la última fecha de venta del cliente
+    'Políticas estándar de compra'
+);
+
+--
