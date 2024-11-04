@@ -240,3 +240,12 @@ VALUES (
     (SELECT id_vehiculo FROM Vehiculo WHERE modelo = 'Honda Civic' AND año = 2019),  -- Subconsulta para obtener el id del vehículo
     18000.00
 );
+
+-- Insertar un registro de capacitación en un concesionario
+INSERT INTO Capacitado (id_concesionario, id_empleado, fecha)
+VALUES (
+    (SELECT id FROM Concesionario WHERE nombre = 'Concesionaria ABC'),  -- Subconsulta para obtener el id del concesionario
+    (SELECT id FROM Empleado WHERE nombre = 'María López'),  -- Subconsulta para obtener el id del empleado
+    GETDATE()
+);
+
