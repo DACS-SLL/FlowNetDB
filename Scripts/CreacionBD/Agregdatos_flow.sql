@@ -302,4 +302,12 @@ VALUES (
     'Políticas estándar de compra'
 );
 
---
+-- Insertar un registro de comprobante electronico para una venta existente
+INSERT INTO Comprobante_Electronico (id_venta, tipo, fecha_emision, impuestos)
+VALUES (
+    (SELECT TOP 1 id_venta FROM Venta ORDER BY fecha DESC),  -- Subconsulta para obtener la ultima venta
+    'Boleta', 
+    GETDATE(), 
+    0.18
+);
+
