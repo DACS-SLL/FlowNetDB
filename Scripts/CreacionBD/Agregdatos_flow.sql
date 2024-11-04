@@ -267,3 +267,21 @@ VALUES (
     15000.00, 
     (SELECT id FROM Marca WHERE nombre = 'Ford')  -- Subconsulta para obtener el id de la marca
 );
+
+-- Insertar una pieza de repuesto con relacion a un mantenimiento especifico
+INSERT INTO Repuesto (nombre, precio, estado, id_mantenimiento)
+VALUES (
+    'Filtro de aceite', 
+    50.00, 
+    'Nuevo', 
+    (SELECT TOP 1 id_mantenimiento FROM Mantenimiento ORDER BY fecha DESC)  -- Subconsulta para obtener el último mantenimiento registrado
+);
+
+-- Insertar una pieza de repuesto con eelacion a un mantenimiento especifico
+INSERT INTO Repuesto (nombre, precio, estado, id_mantenimiento)
+VALUES (
+    'Filtro de aceite', 
+    50.00, 
+    'Nuevo', 
+    (SELECT TOP 1 id_mantenimiento FROM Mantenimiento ORDER BY fecha DESC)  -- Subconsulta para obtener el último mantenimiento registrado
+);
