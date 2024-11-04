@@ -285,3 +285,11 @@ VALUES (
     'Nuevo', 
     (SELECT TOP 1 id_mantenimiento FROM Mantenimiento ORDER BY fecha DESC)  -- Subconsulta para obtener el último mantenimiento registrado
 );
+
+-- Insertar un registro de taller donde se asigne una capacidad y ubicacion de un concesionario
+INSERT INTO Taller (id_concesionario, capacidad, direccion_ensamblaje)
+VALUES (
+    (SELECT id FROM Concesionario WHERE nombre = 'Concesionaria XYZ'),  -- Subconsulta para el concesionario
+    50, 
+    'Av. Principal 456'
+);
