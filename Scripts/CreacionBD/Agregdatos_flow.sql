@@ -212,4 +212,15 @@ SELECT
     CAST(RAND(CHECKSUM(NEWID())) * 1000 AS DECIMAL(18,2))
 FROM Venta;
 
+-- INSERCIONES CON SUBCONSULTAS
+-- Insertar una venta con un empleado y un cliente existente
+INSERT INTO Venta (id_cliente, id_empleado, tipo_comprobante, fecha, pago_inicial, metodo_pago)
+VALUES (
+    (SELECT id FROM Cliente WHERE nombre = 'Juan Pérez'),  
+    (SELECT id FROM Empleado WHERE nombre = 'Carlos Gómez'),  
+    'Factura', 
+    GETDATE(), 
+    5000.00, 
+    'Tarjeta de Crédito'
+);
 
