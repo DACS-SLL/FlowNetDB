@@ -254,7 +254,7 @@ INSERT INTO Cliente (nombre, telefono, direccion, email, historia_compras)
 VALUES (
     'Pedro Díaz', 
     '987654321', 
-    'Calle Falsa 123', 
+    'Avenida Lopez y Nates 458', 
     'pedro.diaz@mail.com', 
     (SELECT TOP 1 id_venta FROM Venta ORDER BY fecha DESC)  -- Subconsulta para obtener la venta más reciente
 );
