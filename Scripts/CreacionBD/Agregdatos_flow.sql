@@ -224,3 +224,11 @@ VALUES (
     'Tarjeta de Crédito'
 );
 
+-- Obtener el id_vehiculo
+INSERT INTO Mantenimiento (id_vehiculo, tipo, fecha, detalles)
+VALUES (
+    (SELECT id_vehiculo FROM Vehiculo WHERE modelo = 'Toyota Corolla' AND año = 2020),  -- Subconsulta para obtener el id del vehículo
+    'Preventivo', 
+    GETDATE(), 
+    'Cambio de aceite y revisión general'
+);
