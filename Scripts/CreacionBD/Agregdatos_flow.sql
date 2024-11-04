@@ -232,3 +232,11 @@ VALUES (
     GETDATE(), 
     'Cambio de aceite y revisión general'
 );
+
+-- Insertar un Detalle de Venta para obtener el id_venta y id_vehiculo
+INSERT INTO Detalle_Venta (id_venta, id_vehiculo, precio)
+VALUES (
+    (SELECT TOP 1 id_venta FROM Venta WHERE id_cliente = (SELECT id FROM Cliente WHERE nombre = 'Juan Pérez') ORDER BY fecha DESC),  -- Subconsulta para obtener la venta más reciente del cliente
+    (SELECT id_vehiculo FROM Vehiculo WHERE modelo = 'Honda Civic' AND año = 2019),  -- Subconsulta para obtener el id del vehículo
+    18000.00
+);
