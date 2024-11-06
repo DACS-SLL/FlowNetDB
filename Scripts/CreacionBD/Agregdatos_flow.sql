@@ -9,7 +9,8 @@ VALUES ('Perú'), ('Chile'), ('Colombia'), ('Argentina'), ('México');
 INSERT INTO Man_ciudad (nombre, id_pais)
 VALUES 
 ('Lima', 1), ('Santiago', 2), ('Bogotá', 3), ('Buenos Aires', 4), ('Ciudad de México', 5),
-('Arequipa', 1), ('Valparaíso', 2), ('Medellín', 3), ('Córdoba', 4), ('Guadalajara', 5);
+('Arequipa', 1), ('Valparaíso', 2), ('Medellín', 3), ('Córdoba', 4), ('Guadalajara', 5),
+('Huanuco', 1), ('Osorno', 2), ('Cali', 3), ('Mendoza', 4), ('Monterrey', 5);
 
 -- Insertar datos en Metodo_Pago
 INSERT INTO Metodo_Pago (tipo)
@@ -126,10 +127,10 @@ FROM sys.all_columns;
 
 -- Insertar datos en Marca_Repuesto y Modelo_Repuesto
 INSERT INTO Marca_Repuesto (nombre_marca)
-VALUES ('MarcaRepuesto1'), ('MarcaRepuesto2'), ('MarcaRepuesto3'), ('MarcaRepuesto4'), ('MarcaRepuesto5');
+VALUES ('Toyota'), ('Nissan'), ('Ford');
 
 INSERT INTO Modelo_Repuesto (nombre_modelo)
-VALUES ('ModeloRepuesto1'), ('ModeloRepuesto2'), ('ModeloRepuesto3'), ('ModeloRepuesto4'), ('ModeloRepuesto5');
+VALUES ('Llantas'), ('Motor'), ('Carburador'), ('Frenos'), ('Rotadores');
 
 -- Insertar 500 mantenimientos
 SET @i = 1;
@@ -182,12 +183,12 @@ END;
 INSERT INTO DetalleVenta (id_venta, id_vehiculo, id_metodo_pago, pago_inicial, saldo_pendiente, id_cliente, re_registro)
 SELECT 
     v.id_venta,
-    ABS(CHECKSUM(NEWID())) % 500 + 1,  -- id_vehiculo
-    ABS(CHECKSUM(NEWID())) % 5 + 1,  -- id_metodo_pago
-    CAST(RAND(CHECKSUM(NEWID())) * 10000 AS DECIMAL(18,2)),  -- pago_inicial
-    CAST(RAND(CHECKSUM(NEWID())) * 10000 AS DECIMAL(18,2)),  -- saldo_pendiente
-    ABS(CHECKSUM(NEWID())) % 500 + 1,  -- id_cliente
-    ABS(CHECKSUM(NEWID())) % 2  -- re_registro
+    ABS(CHECKSUM(NEWID())) % 500 + 1,
+    ABS(CHECKSUM(NEWID())) % 5 + 1,
+    CAST(RAND(CHECKSUM(NEWID())) * 10000 AS DECIMAL(18,2)),
+    CAST(RAND(CHECKSUM(NEWID())) * 10000 AS DECIMAL(18,2)),
+    ABS(CHECKSUM(NEWID())) % 500 + 1,
+    ABS(CHECKSUM(NEWID())) % 2
 FROM Venta v;
 
 -- Insertar datos en ContratoCompra y DetalleContrato
@@ -227,7 +228,7 @@ VALUES (
 -- Obtener el id_vehiculo
 INSERT INTO Mantenimiento (id_vehiculo, tipo, fecha, detalles)
 VALUES (
-    (SELECT id_vehiculo FROM Vehiculo WHERE modelo = 'Toyota Corolla' AND año = 2020),  -- Subconsulta para obtener el id del vehículo
+    (SELECT id_vehiculo FROM Vehiculo WHERE modelo = 'Toyota Corolla' AND año = 2020),
     'Preventivo', 
     GETDATE(), 
     'Cambio de aceite y revisión general'
@@ -236,16 +237,16 @@ VALUES (
 -- Insertar un Detalle de Venta para obtener el id_venta y id_vehiculo
 INSERT INTO Detalle_Venta (id_venta, id_vehiculo, precio)
 VALUES (
-    (SELECT TOP 1 id_venta FROM Venta WHERE id_cliente = (SELECT id FROM Cliente WHERE nombre = 'Juan Pérez') ORDER BY fecha DESC),  -- Subconsulta para obtener la venta más reciente del cliente
-    (SELECT id_vehiculo FROM Vehiculo WHERE modelo = 'Honda Civic' AND año = 2019),  -- Subconsulta para obtener el id del vehículo
+    (SELECT TOP 1 id_venta FROM Venta WHERE id_cliente = (SELECT id FROM Cliente WHERE nombre = 'Juan Pérez') ORDER BY fecha DESC), 
+    (SELECT id_vehiculo FROM Vehiculo WHERE modelo = 'Honda Civic' AND año = 2019),
     18000.00
 );
 
 -- Insertar un registro de capacitación en un concesionario
 INSERT INTO Capacitado (id_concesionario, id_empleado, fecha)
 VALUES (
-    (SELECT id FROM Concesionario WHERE nombre = 'Concesionaria ABC'),  -- Subconsulta para obtener el id del concesionario
-    (SELECT id FROM Empleado WHERE nombre = 'María López'),  -- Subconsulta para obtener el id del empleado
+    (SELECT id FROM Concesionario WHERE nombre = 'Concesionaria ABC'),
+    (SELECT id FROM Empleado WHERE nombre = 'María López'),
     GETDATE()
 );
 
@@ -256,7 +257,7 @@ VALUES (
     '987654321', 
     'Avenida Lopez y Nates 458', 
     'pedro.diaz@mail.com', 
-    (SELECT TOP 1 id_venta FROM Venta ORDER BY fecha DESC)  -- Subconsulta para obtener la venta más reciente
+    (SELECT TOP 1 id_venta FROM Venta ORDER BY fecha DESC)
 );
 
 -- Insertar un vehículo y asignarle una marca existente
@@ -265,7 +266,7 @@ VALUES (
     'Ford Fiesta', 
     2021, 
     15000.00, 
-    (SELECT id FROM Marca WHERE nombre = 'Ford')  -- Subconsulta para obtener el id de la marca
+    (SELECT id FROM Marca WHERE nombre = 'Ford')
 );
 
 -- Insertar una pieza de repuesto con relacion a un mantenimiento especifico
@@ -274,7 +275,7 @@ VALUES (
     'Filtro de aceite', 
     50.00, 
     'Nuevo', 
-    (SELECT TOP 1 id_mantenimiento FROM Mantenimiento ORDER BY fecha DESC)  -- Subconsulta para obtener el último mantenimiento registrado
+    (SELECT TOP 1 id_mantenimiento FROM Mantenimiento ORDER BY fecha DESC)
 );
 
 -- Insertar una pieza de repuesto con eelacion a un mantenimiento especifico
@@ -283,13 +284,13 @@ VALUES (
     'Filtro de aceite', 
     50.00, 
     'Nuevo', 
-    (SELECT TOP 1 id_mantenimiento FROM Mantenimiento ORDER BY fecha DESC)  -- Subconsulta para obtener el último mantenimiento registrado
+    (SELECT TOP 1 id_mantenimiento FROM Mantenimiento ORDER BY fecha DESC)
 );
 
 -- Insertar un registro de taller donde se asigne una capacidad y ubicacion de un concesionario
 INSERT INTO Taller (id_concesionario, capacidad, direccion_ensamblaje)
 VALUES (
-    (SELECT id FROM Concesionario WHERE nombre = 'Concesionaria XYZ'),  -- Subconsulta para el concesionario
+    (SELECT id FROM Concesionario WHERE nombre = 'Concesionaria XYZ'),
     50, 
     'Av. Principal 456'
 );
@@ -297,15 +298,15 @@ VALUES (
 -- Insertar un contrato de compra asociado a un cliente y su fecha de compra mas reciente
 INSERT INTO Contrato_de_Compra (id_cliente, fecha, politicas)
 VALUES (
-    (SELECT id FROM Cliente WHERE nombre = 'Sofía Martínez'),  -- Subconsulta para obtener el id del cliente
-    (SELECT TOP 1 fecha FROM Venta WHERE id_cliente = (SELECT id FROM Cliente WHERE nombre = 'Sofía Martínez') ORDER BY fecha DESC),  -- Subconsulta para la última fecha de venta del cliente
+    (SELECT id FROM Cliente WHERE nombre = 'Sofía Martínez'),
+    (SELECT TOP 1 fecha FROM Venta WHERE id_cliente = (SELECT id FROM Cliente WHERE nombre = 'Sofía Martínez') ORDER BY fecha DESC),
     'Políticas estándar de compra'
 );
 
 -- Insertar un registro de comprobante electronico para una venta existente
 INSERT INTO Comprobante_Electronico (id_venta, tipo, fecha_emision, impuestos)
 VALUES (
-    (SELECT TOP 1 id_venta FROM Venta ORDER BY fecha DESC),  -- Subconsulta para obtener la ultima venta
+    (SELECT TOP 1 id_venta FROM Venta ORDER BY fecha DESC),
     'Boleta', 
     GETDATE(), 
     0.18
