@@ -1,3 +1,10 @@
+-- Verificar y eliminar la base de datos si existe
+IF EXISTS (SELECT name FROM sys.databases WHERE name = 'FlowNet')
+BEGIN
+    DROP DATABASE FlowNet;
+END
+GO
+
 -- Creación de la base de datos FlowNet
 CREATE DATABASE FlowNet
 ON 
@@ -59,7 +66,7 @@ FILEGROUP FlowNetDataRep
 ),
 FILEGROUP FlowNetLogs
 (
-    NAME = 'FlowNetLogs',
+    NAME = 'FlowNetLog1',
     FILENAME = 'C:\FlowNet\FlowNetLog.ndf', --Cambiar
     SIZE = 5MB,
     MAXSIZE = UNLIMITED,
@@ -75,9 +82,37 @@ LOG ON
 );
 GO
 
--- Tablas principales
-use FlowNet
+USE FlowNet;
+GO
+-- Verificar y eliminar las tablas si existen
+IF OBJECT_ID('Man_Pais', 'U') IS NOT NULL DROP TABLE Man_Pais;
+IF OBJECT_ID('Man_ciudad', 'U') IS NOT NULL DROP TABLE Man_ciudad;
+IF OBJECT_ID('Empleado', 'U') IS NOT NULL DROP TABLE Empleado;
+IF OBJECT_ID('EmpleadoVentas', 'U') IS NOT NULL DROP TABLE EmpleadoVentas;
+IF OBJECT_ID('EmpleadoAdministrativo', 'U') IS NOT NULL DROP TABLE EmpleadoAdministrativo;
+IF OBJECT_ID('EmpleadoOperativo', 'U') IS NOT NULL DROP TABLE EmpleadoOperativo;
+IF OBJECT_ID('Metodo_Pago', 'U') IS NOT NULL DROP TABLE Metodo_Pago;
+IF OBJECT_ID('Tipo_Comprobante', 'U') IS NOT NULL DROP TABLE Tipo_Comprobante;
+IF OBJECT_ID('Marca', 'U') IS NOT NULL DROP TABLE Marca;
+IF OBJECT_ID('Preferencias', 'U') IS NOT NULL DROP TABLE Preferencias;
+IF OBJECT_ID('Cliente', 'U') IS NOT NULL DROP TABLE Cliente;
+IF OBJECT_ID('InformCliente', 'U') IS NOT NULL DROP TABLE InformCliente;
+IF OBJECT_ID('Vehiculo', 'U') IS NOT NULL DROP TABLE Vehiculo;
+IF OBJECT_ID('Detalle_Vehiculo', 'U') IS NOT NULL DROP TABLE Detalle_Vehiculo;
+IF OBJECT_ID('Venta', 'U') IS NOT NULL DROP TABLE Venta;
+IF OBJECT_ID('DetalleVenta', 'U ```sql
+') IS NOT NULL DROP TABLE DetalleVenta;
+IF OBJECT_ID('Taller', 'U') IS NOT NULL DROP TABLE Taller;
+IF OBJECT_ID('Mantenimiento', 'U') IS NOT NULL DROP TABLE Mantenimiento;
+IF OBJECT_ID('Marca_Repuesto', 'U') IS NOT NULL DROP TABLE Marca_Repuesto;
+IF OBJECT_ID('Modelo_Repuesto', 'U') IS NOT NULL DROP TABLE Modelo_Repuesto;
+IF OBJECT_ID('Repuestos', 'U') IS NOT NULL DROP TABLE Repuestos;
+IF OBJECT_ID('Concesionario', 'U') IS NOT NULL DROP TABLE Concesionario;
+IF OBJECT_ID('ContratoCompra', 'U') IS NOT NULL DROP TABLE ContratoCompra;
+IF OBJECT_ID('DetalleContrato', 'U') IS NOT NULL DROP TABLE DetalleContrato;
+IF OBJECT_ID('ComprobanteElectronico', 'U') IS NOT NULL DROP TABLE ComprobanteElectronico;
 
+-- Tablas principales
 CREATE TABLE Man_Pais (
     id_pais INT PRIMARY KEY IDENTITY(1,1),
     nombre_pais NVARCHAR(10) NOT NULL
@@ -95,6 +130,13 @@ CREATE TABLE Empleado (
     disponibilidad BIT DEFAULT 1 -- Significa 1 disponible, 0 no disponible
 );
 GO
+
+-- Verificar si la tabla Empleado existe y agregar una columna si no existe
+IF OBJECT_ID('Empleado', 'U') IS NOT NULL
+BEGIN
+    -- ALTER para modificar la tabla existente
+    ALTER TABLE Empleado ADD fecha_ingreso DATETIME NULL;
+END
 
 -- Tabla EmpleadoVentas (Hereda de Empleado)
 CREATE TABLE EmpleadoVentas (
@@ -282,15 +324,12 @@ GO
 
 
 -- Tabla Contrato de Compra
-
-
 CREATE TABLE ContratoCompra (
     id_contrato INT PRIMARY KEY IDENTITY(1,1),
     id_venta INT FOREIGN KEY REFERENCES Venta(id_venta),
     fecha DATETIME NOT NULL
 );
 GO
-
 
 CREATE TABLE DetalleContrato (
     id_detallecontrato INT PRIMARY KEY IDENTITY(1,1),
