@@ -1,3 +1,4 @@
+-- CURSOR PARA GENERAR UN REPORTE DE VENTAS
 DECLARE @id_cliente INT, @nombre_cliente NVARCHAR(100), @telefono NVARCHAR(20);
 DECLARE @id_venta INT, @fecha DATETIME, @total_pagado DECIMAL(18, 2);
 DECLARE @id_vehiculo INT, @modelo NVARCHAR(100), @precio DECIMAL(18, 2);
@@ -79,3 +80,87 @@ END
 
 CLOSE cursor_clientes;
 DEALLOCATE cursor_clientes;
+
+
+-- Capacidad utilizada por taller
+
+DECLARE @id_taller INT, @nombre_taller NVARCHAR(100), @capacidad_total INT;
+DECLARE @tipo_mantenimiento NVARCHAR(100);
+DECLARE @id_vehiculo INT, @modelo NVARCHAR(100);
+DECLARE @nombre_empleado NVARCHAR(100), @fecha_mantenimiento DATETIME;
+
+-- Cursor del Nivel 1: Talleres
+DECLARE cursor_talleres CURSOR FOR
+SELECT id_taller, nombre, capacidad
+FROM Taller;
+
+OPEN cursor_talleres;
+FETCH NEXT FROM cursor_talleres INTO @id_taller, @nombre_taller, @capacidad_total;
+
+WHILE @@FETCH_STATUS = 0
+BEGIN
+    PRINT 'Taller: ' + @nombre_taller + ' | Capacidad Total: ' + CAST(@capacidad_total AS NVARCHAR);
+
+    -- Cursor del Nivel 2: Tipos de mantenimiento en cada taller
+    DECLARE cursor_tipos_mantenimiento CURSOR FOR
+    SELECT DISTINCT tipo
+    FROM Mantenimiento
+    WHERE id_taller = @id_taller;
+
+    OPEN cursor_tipos_mantenimiento;
+    FETCH NEXT FROM cursor_tipos_mantenimiento INTO @tipo_mantenimiento;
+
+    WHILE @@FETCH_STATUS = 0
+    BEGIN
+        PRINT '    Tipo de Mantenimiento: ' + @tipo_mantenimiento;
+
+        -- Cursor del Nivel 3: Vehículos atendidos para este tipo de mantenimiento
+        DECLARE cursor_vehiculos CURSOR FOR
+        SELECT DISTINCT v.id_vehiculo, v.modelo
+        FROM Vehiculo v
+        JOIN Mantenimiento m ON v.id_vehiculo = m.id_vehiculo
+        WHERE m.id_taller = @id_taller AND m.tipo = @tipo_mantenimiento;
+
+        OPEN cursor_vehiculos;
+        FETCH NEXT FROM cursor_vehiculos INTO @id_vehiculo, @modelo;
+
+        WHILE @@FETCH_STATUS = 0
+        BEGIN
+            PRINT '        Vehículo: ' + @modelo + ' (ID: ' + CAST(@id_vehiculo AS NVARCHAR) + ')';
+
+            -- Cursor del Nivel 4: Empleados que realizaron el mantenimiento
+            DECLARE cursor_empleados CURSOR FOR
+            SELECT e.nombre, m.fecha
+            FROM Empleado e
+            JOIN Mantenimiento m ON e.id_empleado = m.id_empleado
+            WHERE m.id_taller = @id_taller AND m.tipo = @tipo_mantenimiento AND m.id_vehiculo = @id_vehiculo;
+
+            OPEN cursor_empleados;
+            FETCH NEXT FROM cursor_empleados INTO @nombre_empleado, @fecha_mantenimiento;
+
+            WHILE @@FETCH_STATUS = 0
+            BEGIN
+                PRINT '            Empleado: ' + @nombre_empleado + ' | Fecha: ' + CAST(@fecha_mantenimiento AS NVARCHAR);
+                FETCH NEXT FROM cursor_empleados INTO @nombre_empleado, @fecha_mantenimiento;
+            END
+
+            CLOSE cursor_empleados;
+            DEALLOCATE cursor_empleados;
+
+            FETCH NEXT FROM cursor_vehiculos INTO @id_vehiculo, @modelo;
+        END
+
+        CLOSE cursor_vehiculos;
+        DEALLOCATE cursor_vehiculos;
+
+        FETCH NEXT FROM cursor_tipos_mantenimiento INTO @tipo_mantenimiento;
+    END
+
+    CLOSE cursor_tipos_mantenimiento;
+    DEALLOCATE cursor_tipos_mantenimiento;
+
+    FETCH NEXT FROM cursor_talleres INTO @id_taller, @nombre_taller, @capacidad_total;
+END
+
+CLOSE cursor_talleres;
+DEALLOCATE cursor_talleres;
