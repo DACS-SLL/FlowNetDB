@@ -1,40 +1,41 @@
---1. Proceso Almacenado: Calcular la Comisión Total de un Empleado de Ventas:
+--Calcular la Comisión Total de un Empleado de Ventas
 CREATE PROCEDURE CalcularComisionTotalEmpleado (
     IN empleado_id INT,
     OUT comision_total DECIMAL(10, 2)
 )
 BEGIN
-    SELECT SUM(comision)
+    SELECT SUM(comision) 
     INTO comision_total
     FROM Ventas
     WHERE id_empleado = empleado_id;
 END;
---2. Proceso Almacenado: Calcular el Descuento Promedio en Ventas
+-- Calcular el Descuento Promedio en Ventas
 CREATE PROCEDURE CalcularDescuentoPromedio (
     OUT descuento_promedio DECIMAL(5, 2)
 )
 BEGIN
-    SELECT AVG(descuento)
+    SELECT AVG(descuento) 
     INTO descuento_promedio
     FROM Ventas;
 END;
---3. Proceso Almacenado: Determinar la Capacidad Disponible en Talleres (Corregir)
+--Determinar la Capacidad Disponible en Talleres
 CREATE PROCEDURE DeterminarCapacidadDisponible (
     OUT capacidad_disponible INT
 )
 BEGIN
-    SELECT (capacidad_maxima - COUNT(*)) AS capacidad_disponible
-    FROM Talleres
-    LEFT JOIN Reservas ON Talleres.id_taller = Reservas.id_taller
-    WHERE Reservas.fecha_fin IS NULL; 
+    SELECT (T.capacidad_maxima - COUNT(R.id_reserva)) AS capacidad_disponible
+    INTO capacidad_disponible
+    FROM Talleres T
+    LEFT JOIN Reservas R ON T.id_taller = R.id_taller
+    WHERE R.fecha_fin IS NULL;
 END;
-
 --Registrar un Nuevo Cliente
+
 CREATE PROCEDURE RegistrarNuevoCliente (
-    IN nombre_cliente VARCHAR(50),
-    IN apellido_cliente VARCHAR(50),
-    IN telefono_cliente VARCHAR(15),
-    IN correo_cliente VARCHAR(50)
+    IN nombre_cliente Clientes.nombre%TYPE,
+    IN apellido_cliente Clientes.apellido%TYPE,
+    IN telefono_cliente Clientes.telefono%TYPE,
+    IN correo_cliente Clientes.correo%TYPE
 )
 BEGIN
     INSERT INTO Clientes (nombre, apellido, telefono, correo)
@@ -51,19 +52,15 @@ CREATE PROCEDURE RegistrarVentaConComprobante (
 BEGIN
     DECLARE nuevo_id_venta INT;
 
-    -- Insertar la venta
     INSERT INTO Ventas (id_cliente, id_vehiculo, fecha_venta, precio)
     VALUES (cliente_id, vehiculo_id, NOW(), precio);
 
-    -- Obtener el último ID de venta insertado
     SET nuevo_id_venta = LAST_INSERT_ID();
 
-    -- Generar el comprobante electrónico
     INSERT INTO Comprobantes (id_venta, tipo, fecha_emision)
     VALUES (nuevo_id_venta, tipo_comprobante, NOW());
 END;
-
--- Generar un Reporte de Ventas Mensuales
+--Generar un Reporte de Ventas Mensuales
 CREATE PROCEDURE GenerarReporteVentasMensuales (
     IN mes INT,
     IN anio INT,
@@ -76,55 +73,42 @@ BEGIN
     WHERE MONTH(fecha_venta) = mes AND YEAR(fecha_venta) = anio;
 END;
 
---Vistas
---4. Vista de Información de Vehículos en Venta
+--Vista de Información de Vehículos en Venta
 CREATE VIEW Vista_VehiculosEnVenta AS
 SELECT 
-    Vehiculos.id_vehiculo,
-    Vehiculos.marca,
-    Vehiculos.modelo,
-    Vehiculos.anio,
-    Vehiculos.precio,
-    Vehiculos.color,
-    Vehiculos.tipo_combustible,
-    Vehiculos.estado
-FROM 
-    Vehiculos
-WHERE 
-    Vehiculos.estado = 'En Venta';
+    id_vehiculo,
+    marca,
+    modelo,
+    anio,
+    precio,
+    color,
+    tipo_combustible,
+    estado
+FROM Vehiculos
+WHERE estado = 'En Venta';
 
---5. Vista de Ventas por Cliente
+--Vista de Ventas por Cliente
 CREATE VIEW Vista_VentasPorCliente AS
 SELECT 
-    Clientes.id_cliente,
-    Clientes.nombre,
-    Clientes.apellido,
-    Ventas.fecha_venta,
-    Vehiculos.marca,
-    Vehiculos.modelo,
-    Vehiculos.precio AS monto_venta
-FROM 
-    Ventas
-JOIN 
-    Clientes ON Ventas.id_cliente = Clientes.id_cliente
-JOIN 
-    Vehiculos ON Ventas.id_vehiculo = Vehiculos.id_vehiculo;
- 
---6. Vista de Mantenimientos por Vehículo
+    C.id_cliente,
+    C.nombre,
+    C.apellido,
+    V.fecha_venta,
+    Ve.marca,
+    Ve.modelo,
+    V.precio AS monto_venta
+FROM Ventas V
+JOIN Clientes C ON V.id_cliente = C.id_cliente
+JOIN Vehiculos Ve ON V.id_vehiculo = Ve.id_vehiculo;
+--Vista de Mantenimientos por Vehículo
 CREATE VIEW Vista_MantenimientosPorVehiculo AS
 SELECT 
-    Vehiculos.id_vehiculo,
-    Vehiculos.marca,
-    Vehiculos.modelo,
-    Mantenimientos.fecha_mantenimiento,
-    Mantenimientos.tipo_servicio,
-    Talleres.nombre AS taller
-FROM 
-    Mantenimientos
-JOIN 
-    Vehiculos ON Mantenimientos.id_vehiculo = Vehiculos.id_vehiculo
-JOIN 
-    Talleres ON Mantenimientos.id_taller = Talleres.id_taller;
-
-
-
+    Ve.id_vehiculo,
+    Ve.marca,
+    Ve.modelo,
+    M.fecha_mantenimiento,
+    M.tipo_servicio,
+    T.nombre AS taller
+FROM Mantenimientos M
+JOIN Vehiculos Ve ON M.id_vehiculo = Ve.id_vehiculo
+JOIN Talleres T ON M.id_taller = T.id_taller;
