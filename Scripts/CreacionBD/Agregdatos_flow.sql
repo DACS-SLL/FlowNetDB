@@ -1,4 +1,4 @@
-USE FlowNet3;
+USE FlowNet;
 GO
 
 -- Insertar datos en Man_Pais
