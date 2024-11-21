@@ -217,6 +217,7 @@ CREATE TABLE Vehiculo (
     id_vehiculo INT PRIMARY KEY IDENTITY(1,1),
     id_cliente INT FOREIGN KEY REFERENCES Cliente(id_cliente),
     precio DECIMAL(18, 2),
+    estado BIT DEFAULT 1, -- 1 no disponible, 0 disponible
 );
 GO
 
@@ -228,7 +229,7 @@ CREATE TABLE Detalle_Vehiculo (
     potencia NVARCHAR(50),
     kms DECIMAL(10, 2),
     FOREIGN KEY (id_vehiculo) REFERENCES Vehiculo(id_vehiculo),
-	FOREIGN KEY (id_marca) REFERENCES Marca(id_marca)
+    FOREIGN KEY (id_marca) REFERENCES Marca(id_marca)
 );
 
 GO
@@ -259,7 +260,7 @@ CREATE TABLE Concesionario (
     direccion NVARCHAR(200),
     id_ciudad INT,
     capacidad INT,
-	FOREIGN KEY (id_ciudad) REFERENCES Man_Ciudad(id_ciudad)
+    FOREIGN KEY (id_ciudad) REFERENCES Man_Ciudad(id_ciudad)
 );
 GO
 
