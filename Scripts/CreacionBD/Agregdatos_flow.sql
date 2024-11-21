@@ -77,10 +77,11 @@ AND id_empleado NOT IN (SELECT id_empleado FROM EmpleadoAdministrativo);
 SET @i = 1;
 WHILE @i <= 500
 BEGIN
-    INSERT INTO Vehiculo (id_cliente, precio)
+    INSERT INTO Vehiculo (id_cliente, precio, estado)
     VALUES (
         ABS(CHECKSUM(NEWID())) % 500 + 1,
-        20000 + (ABS(CHECKSUM(NEWID())) % 30000)
+        20000 + (ABS(CHECKSUM(NEWID())) % 30000),
+        0
     );
     SET @i = @i + 1;
 END;
@@ -216,7 +217,7 @@ INSERT INTO DetalleVenta (id_venta, id_vehiculo, id_metodo_pago, pago_inicial)
 VALUES (
     (SELECT TOP 1 id_venta FROM DetalleVenta WHERE id_cliente = (SELECT id_cliente FROM Cliente WHERE nombre = 'Juan Pérez')), 
     (SELECT id_vehiculo FROM Detalle_Vehiculo WHERE modelo = 'Ford' AND año = 2019),
-    (SELECT id_metodo_pago FROM Metodo_Pago WHERE tipo = 'Tarjeta de Crédito'), -- Asegúrate de que este tipo exista
+    (SELECT id_metodo_pago FROM Metodo_Pago WHERE tipo = 'Tarjeta de Crédito'),
     18000.00
 );
 
