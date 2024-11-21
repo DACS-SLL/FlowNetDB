@@ -156,10 +156,10 @@ WHILE @i <= 500
 BEGIN
     INSERT INTO Venta (id_empleado, fecha, id_tipoC, XMLSUNAT)
     VALUES (
-        ABS(CHECKSUM(NEWID())) % 100 + 1,  -- id_empleado
-        DATEADD(DAY, -ABS(CHECKSUM(NEWID())) % 365, GETDATE()),  -- fecha aleatoria en el último año
-        ABS(CHECKSUM(NEWID())) % 4 + 1,  -- id_tipoC
-        '<xml>Ejemplo de XML SUNAT</xml>'  -- XMLSUNAT
+        ABS(CHECKSUM(NEWID())) % 100 + 1,
+        DATEADD(DAY, -ABS(CHECKSUM(NEWID())) % 365, GETDATE()),
+        ABS(CHECKSUM(NEWID())) % 4 + 1,
+        '<xml>Ejemplo de XML SUNAT</xml>'
     );
     SET @i = @i + 1;
 END;
