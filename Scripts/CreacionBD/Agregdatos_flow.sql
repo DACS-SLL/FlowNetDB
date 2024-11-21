@@ -101,7 +101,7 @@ INSERT INTO Detalle_Vehiculo (id_vehiculo, año, id_marca, modelo, potencia, kms
 SELECT 
     id_vehiculo,
     2020 + (ABS(CHECKSUM(NEWID())) % 5),
-    ABS(CHECKSUM(NEWID())) % 5 + 1,
+    ABS(CHECKSUM(NEWID())) % 3 + 1
     CONCAT('Modelo', id_vehiculo),
     CONCAT(100 + (ABS(CHECKSUM(NEWID())) % 200), ' HP'),
     CAST(RAND(CHECKSUM(NEWID())) * 100000 AS DECIMAL(10,2))
