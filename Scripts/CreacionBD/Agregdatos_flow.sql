@@ -45,7 +45,7 @@ SELECT
     ABS(CHECKSUM(NEWID())) % 10 + 1,
     'Sin historial',
     CONCAT('cliente', id_cliente, '@correo.com'),
-    ABS(CHECKSUM(NEWID())) % 100 + 1
+    ABS(CHECKSUM(NEWID())) % 100 + 3
 FROM Cliente;
 
 SET @i = 1;
