@@ -21,8 +21,8 @@ VALUES ('Toyota'), ('Nissan'), ('Ford');
 
 INSERT INTO Preferencias (id_marca, id_metodopago)
 SELECT TOP 100 
-    ABS(CHECKSUM(NEWID())) % 5 + 1,
-    ABS(CHECKSUM(NEWID())) % 5 + 1
+    ABS(CHECKSUM(NEWID())) % 3 + 1,
+    ABS(CHECKSUM(NEWID())) % 3 + 1
 FROM sys.all_columns;
 
 DECLARE @i INT = 1;
