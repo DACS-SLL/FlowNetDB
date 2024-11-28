@@ -92,22 +92,33 @@ JOIN Empleado e ON m.id_empleado = e.id_empleado;
 GO
 --Procedimientos almacenados
 --Registrar un nuevo cliente
-CREATE PROCEDURE RegistrarCliente (
-@nombre NVARCHAR(100),
-@telefono NVARCHAR(20),
-@direccion NVARCHAR(200),
-@email NVARCHAR(100),
-@RUC NVARCHAR(20),
-@historial_compras TEXT,
-@preferencias NVARCHAR(255)
-)
+CREATE PROCEDURE RegistrarCliente
+    @nombre NVARCHAR(100),
+    @telefono NVARCHAR(20) = NULL,
+    @RUC NVARCHAR(20) = NULL,
+    @dni NVARCHAR(15) = NULL
 AS
 BEGIN
-INSERT INTO Cliente (nombre, telefono, direccion, email, RUC, historial_compras,
-preferencias)
-VALUES (@nombre, @telefono, @direccion, @email, @RUC, @historial_compras,
-@preferencias);
-END;
+    -- Verificar si el cliente ya existe por RUC o DNI
+    IF EXISTS (SELECT 1 FROM [dbo].[Cliente] WHERE [RUC] = @RUC)
+    BEGIN
+        PRINT 'Error: El RUC ya está registrado.';
+        RETURN;
+    END
+
+    IF EXISTS (SELECT 1 FROM [dbo].[Cliente] WHERE [dni] = @dni)
+    BEGIN
+        PRINT 'Error: El DNI ya está registrado.';
+        RETURN;
+    END
+
+    -- Insertar el nuevo cliente
+    INSERT INTO [dbo].[Cliente] ([nombre], [telefono], [RUC], [dni])
+    VALUES (@nombre, @telefono, @RUC, @dni);
+
+    PRINT 'Cliente registrado exitosamente.';
+END
+
 GO
 --Registrar una venta con comprobante electrónico
 CREATE PROCEDURE RegistrarVentaConComprobante (
