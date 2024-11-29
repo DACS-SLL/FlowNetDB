@@ -46,7 +46,9 @@ SELECT
     'Sin historial',
     CONCAT('cliente', id_cliente, '@correo.com'),
     ABS(CHECKSUM(NEWID())) % 100 + 3
-FROM Cliente;
+FROM Cliente
+WHERE id_cliente NOT IN (SELECT id_cliente FROM InformCliente);
+
 
 SET @i = 1;
 WHILE @i <= 100
@@ -62,17 +64,26 @@ END;
 
 INSERT INTO EmpleadoVentas (id_empleado, comisiones)
 SELECT TOP 33 id_empleado, CAST(RAND(CHECKSUM(NEWID())) * 1000 AS DECIMAL(18,2))
-FROM Empleado ORDER BY NEWID();
+FROM Empleado
+WHERE id_empleado NOT IN (SELECT id_empleado FROM EmpleadoVentas)
+ORDER BY NEWID();
+
 
 INSERT INTO EmpleadoAdministrativo (id_empleado, actividades_admin)
 SELECT TOP 33 id_empleado, 'Actividades administrativas generales'
-FROM Empleado WHERE id_empleado NOT IN (SELECT id_empleado FROM EmpleadoVentas)
+FROM Empleado
+WHERE id_empleado NOT IN (SELECT id_empleado FROM EmpleadoVentas)
+  AND id_empleado NOT IN (SELECT id_empleado FROM EmpleadoAdministrativo)
 ORDER BY NEWID();
+
 
 INSERT INTO EmpleadoOperativo (id_empleado, disponibilidad)
 SELECT id_empleado, 'Disponible'
-FROM Empleado WHERE id_empleado NOT IN (SELECT id_empleado FROM EmpleadoVentas)
-AND id_empleado NOT IN (SELECT id_empleado FROM EmpleadoAdministrativo);
+FROM Empleado
+WHERE id_empleado NOT IN (SELECT id_empleado FROM EmpleadoVentas)
+  AND id_empleado NOT IN (SELECT id_empleado FROM EmpleadoAdministrativo)
+  AND id_empleado NOT IN (SELECT id_empleado FROM EmpleadoOperativo);
+
 
 SET @i = 1;
 WHILE @i <= 500
@@ -87,14 +98,16 @@ BEGIN
 END;
 
 INSERT INTO Detalle_Vehiculo (id_vehiculo, año, id_marca, modelo, potencia, kms)
-SELECT 
+SELECT DISTINCT 
     id_vehiculo,
     2020 + (ABS(CHECKSUM(NEWID())) % 5),
     ABS(CHECKSUM(NEWID())) % 3 + 1,
     CONCAT('Modelo', id_vehiculo),
     CONCAT(100 + (ABS(CHECKSUM(NEWID())) % 200), ' HP'),
     CAST(RAND(CHECKSUM(NEWID())) * 100000 AS DECIMAL(10,2))
-FROM Vehiculo;
+FROM Vehiculo
+WHERE id_vehiculo NOT IN (SELECT id_vehiculo FROM Detalle_Vehiculo);
+
 
 INSERT INTO Concesionario (nombre_concesionario, direccion, id_ciudad, capacidad)
 SELECT TOP 10
@@ -198,9 +211,9 @@ FROM Venta;
 -- INSERCIONES CON SUBCONSULTAS
 INSERT INTO Venta (id_empleado, fecha, id_tipoC, XMLSUNAT)
 VALUES (
-    (SELECT id_empleado FROM Empleado WHERE nombre = 'Carlos Gómez'),  
+    (SELECT TOP 1 id_empleado FROM Empleado WHERE nombre = 'Carlos Gómez'),  
     GETDATE(), 
-    (SELECT id_tipoC FROM Tipo_Comprobante WHERE tipo = 'Factura'),
+    (SELECT TOP 1 id_tipoC FROM Tipo_Comprobante WHERE tipo = 'Factura'),
     NULL
 );
 
@@ -216,8 +229,8 @@ VALUES (
 INSERT INTO DetalleVenta (id_venta, id_vehiculo, id_metodo_pago, pago_inicial)
 VALUES (
     (SELECT TOP 1 id_venta FROM DetalleVenta WHERE id_cliente = (SELECT id_cliente FROM Cliente WHERE nombre = 'Juan Pérez')), 
-    (SELECT id_vehiculo FROM Detalle_Vehiculo WHERE modelo = 'Ford' AND año = 2019),
-    (SELECT id_metodo_pago FROM Metodo_Pago WHERE tipo = 'Tarjeta de Crédito'),
+    (SELECT TOP 1 id_vehiculo FROM Detalle_Vehiculo WHERE modelo = 'Ford' AND año = 2019),
+    (SELECT TOP 1 id_metodo_pago FROM Metodo_Pago WHERE tipo = 'Tarjeta de Crédito'),
     18000.00
 );
 
@@ -242,9 +255,8 @@ VALUES (
      FROM Venta 
      WHERE id_empleado = (SELECT id_empleado FROM Empleado WHERE nombre = 'Sofía Martínez') 
      ORDER BY fecha DESC),
-    (SELECT TOP 1 fecha 
-     FROM Venta 
-     WHERE id_empleado = (SELECT id_empleado FROM Empleado WHERE nombre = 'Sofía Martínez') 
-     ORDER BY fecha DESC)
+    ISNULL((SELECT TOP 1 fecha 
+            FROM Venta 
+            WHERE id_empleado = (SELECT id_empleado FROM Empleado WHERE nombre = 'Sofía Martínez') 
+            ORDER BY fecha DESC), GETDATE())
 );
-
