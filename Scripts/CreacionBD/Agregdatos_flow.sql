@@ -210,13 +210,6 @@ VALUES (
     (SELECT TOP 1 id_mantenimiento FROM Mantenimiento ORDER BY fecha DESC)
 );
 
-INSERT INTO Taller (id_concesionario, capacidad, direccion)
-VALUES (
-    (SELECT id_concesionario FROM Concesionario WHERE nombre_concesionario = 'Concesionaria XYZ'),
-    50, 
-    'Av. Principal 456'
-);
-
 INSERT INTO ContratoCompra (id_venta, fecha)
 VALUES (
     (SELECT TOP 1 id_venta 
