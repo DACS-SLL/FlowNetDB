@@ -21,8 +21,8 @@ VALUES ('Toyota'), ('Nissan'), ('Ford');
 
 INSERT INTO Preferencias (id_marca, id_metodopago)
 SELECT TOP 100 
-    ABS(CHECKSUM(NEWID())) % 3 + 1,
-    ABS(CHECKSUM(NEWID())) % 3 + 1
+    ABS(CHECKSUM(NEWID())) % 5 + 1,
+    ABS(CHECKSUM(NEWID())) % 5 + 1
 FROM sys.all_columns;
 
 DECLARE @i INT = 1;
@@ -42,16 +42,18 @@ INSERT INTO InformCliente (id_cliente, direccion, id_ciudad, historial_compras, 
 SELECT 
     id_cliente,
     CONCAT('Calle ', id_cliente, ' #', ABS(CHECKSUM(NEWID())) % 100),
-    ABS(CHECKSUM(NEWID())) % 10 + 1,
+    ABS(CHECKSUM(NEWID())) % 16 + 1, 
     'Sin historial',
     CONCAT('cliente', id_cliente, '@correo.com'),
-    ABS(CHECKSUM(NEWID())) % 100 + 3
+    ABS(CHECKSUM(NEWID())) % 50 + 1 
 FROM Cliente
 WHERE id_cliente NOT IN (SELECT id_cliente FROM InformCliente);
 
 
+
+
 SET @i = 1;
-WHILE @i <= 100
+WHILE @i <= 5
 BEGIN
     INSERT INTO Empleado (nombre, dni, disponibilidad)
     VALUES (
@@ -63,14 +65,14 @@ BEGIN
 END;
 
 INSERT INTO EmpleadoVentas (id_empleado, comisiones)
-SELECT TOP 33 id_empleado, CAST(RAND(CHECKSUM(NEWID())) * 1000 AS DECIMAL(18,2))
+SELECT TOP 5 id_empleado, CAST(RAND(CHECKSUM(NEWID())) * 1000 AS DECIMAL(18,2))
 FROM Empleado
 WHERE id_empleado NOT IN (SELECT id_empleado FROM EmpleadoVentas)
 ORDER BY NEWID();
 
 
 INSERT INTO EmpleadoAdministrativo (id_empleado, actividades_admin)
-SELECT TOP 33 id_empleado, 'Actividades administrativas generales'
+SELECT TOP 5 id_empleado, 'Actividades administrativas generales'
 FROM Empleado
 WHERE id_empleado NOT IN (SELECT id_empleado FROM EmpleadoVentas)
   AND id_empleado NOT IN (SELECT id_empleado FROM EmpleadoAdministrativo)
@@ -90,12 +92,13 @@ WHILE @i <= 500
 BEGIN
     INSERT INTO Vehiculo (id_cliente, precio, estado)
     VALUES (
-        ABS(CHECKSUM(NEWID())) % 500 + 1,
+        (SELECT TOP 1 id_cliente FROM Cliente ORDER BY NEWID()), 
         20000 + (ABS(CHECKSUM(NEWID())) % 30000),
         0
     );
     SET @i = @i + 1;
 END;
+
 
 INSERT INTO Detalle_Vehiculo (id_vehiculo, año, id_marca, modelo, potencia, kms)
 SELECT DISTINCT 
@@ -119,11 +122,19 @@ FROM sys.all_columns;
 
 INSERT INTO Taller (id_concesionario, capacidad, direccion, id_ciudad)
 SELECT TOP 50
-    ABS(CHECKSUM(NEWID())) % 10 + 1,
-    30 + (ABS(CHECKSUM(NEWID())) % 20),
+    id_concesionario, 
+    30 + (ABS(CHECKSUM(NEWID())) % 20), 
     CONCAT('Dirección Taller ', ROW_NUMBER() OVER (ORDER BY NEWID())),
-    ABS(CHECKSUM(NEWID())) % 10 + 1
-FROM sys.all_columns;
+    id_ciudad 
+FROM (
+    SELECT 
+        c.id_concesionario,
+        m.id_ciudad
+    FROM Concesionario c
+    CROSS JOIN Man_Ciudad m 
+) AS valid_ids
+ORDER BY NEWID(); 
+
 
 INSERT INTO Marca_Repuesto (nombre_marca)
 VALUES ('Toyota'), ('Nissan'), ('Ford');
@@ -133,12 +144,12 @@ VALUES ('Llantas'), ('Motor'), ('Carburador'), ('Frenos'), ('Rotadores');
 
 
 SET @i = 1;
-WHILE @i <= 500
+WHILE @i <= 5
 BEGIN
     INSERT INTO Mantenimiento (id_vehiculo, id_empleado, id_taller, tipo, fecha, observaciones)
     VALUES (
         ABS(CHECKSUM(NEWID())) % 500 + 1,
-        ABS(CHECKSUM(NEWID ())) % 100 + 1,
+        ABS(CHECKSUM(NEWID ())) % 5 + 1,
         ABS(CHECKSUM(NEWID())) % 50 + 1,
         CASE WHEN ABS(CHECKSUM(NEWID())) % 2 = 0 THEN 'Correctivo' ELSE 'Preventivo' END,
         GETDATE(),
@@ -164,49 +175,6 @@ BEGIN
     SET @i = @i + 1;
 END;
 
-SET @i = 1;
-WHILE @i <= 500
-BEGIN
-    INSERT INTO Venta (id_empleado, fecha, id_tipoC, XMLSUNAT)
-    VALUES (
-        ABS(CHECKSUM(NEWID())) % 100 + 1,
-        DATEADD(DAY, -ABS(CHECKSUM(NEWID())) % 365, GETDATE()),
-        ABS(CHECKSUM(NEWID())) % 4 + 1,
-        '<xml>Ejemplo de XML SUNAT</xml>'
-    );
-    SET @i = @i + 1;
-END;
-
-INSERT INTO DetalleVenta (id_venta, id_vehiculo, id_metodo_pago, pago_inicial, saldo_pendiente, id_cliente, re_registro)
-SELECT 
-    v.id_venta,
-    ABS(CHECKSUM(NEWID())) % 500 + 1,
-    ABS(CHECKSUM(NEWID())) % 5 + 1,
-    CAST(RAND(CHECKSUM(NEWID())) * 10000 AS DECIMAL(18,2)),
-    CAST(RAND(CHECKSUM(NEWID())) * 10000 AS DECIMAL(18,2)),
-    ABS(CHECKSUM(NEWID())) % 500 + 1,
-    ABS(CHECKSUM(NEWID())) % 2
-FROM Venta v;
-
-INSERT INTO ContratoCompra (id_venta, fecha)
-SELECT id_venta, GETDATE()
-FROM Venta;
-
-INSERT INTO DetalleContrato (id_contrato, termino_condiciones, politicas)
-SELECT 
-    id_contrato,
-    'Términos y condiciones del contrato',
-    'Políticas del contrato'
-FROM ContratoCompra;
-
-INSERT INTO ComprobanteElectronico (id_venta, id_tipoC, formatoXML, fecha_emision, impuestos)
-SELECT 
-    id_venta,
-    ABS(CHECKSUM(NEWID())) % 4 + 1,
-    'Formato XML del comprobante electrónico',
-    GETDATE(),
-    CAST(RAND(CHECKSUM(NEWID())) * 1000 AS DECIMAL(18,2))
-FROM Venta;
 
 -- INSERCIONES CON SUBCONSULTAS
 INSERT INTO Venta (id_empleado, fecha, id_tipoC, XMLSUNAT)
