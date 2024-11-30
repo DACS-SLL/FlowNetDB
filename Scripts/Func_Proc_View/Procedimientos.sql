@@ -81,6 +81,47 @@ BEGIN
     END CATCH
 END;
 GO
+
+CREATE PROCEDURE EliminarVenta(
+    @id_venta INT
+)
+AS
+BEGIN
+    -- Comienza la transacción
+    BEGIN TRANSACTION;
+
+    BEGIN TRY
+        -- Eliminar los detalles de la venta en la tabla DetalleVenta
+        DELETE FROM DetalleVenta
+        WHERE id_venta = @id_venta;
+
+        -- Restaurar el estado del vehículo a disponible (estado = 1)
+        -- Para hacerlo, primero necesitamos obtener el id_vehiculo asociado
+        DECLARE @id_vehiculo INT;
+        
+        SELECT @id_vehiculo = id_vehiculo
+        FROM DetalleVenta
+        WHERE id_venta = @id_venta;
+
+        -- Restauramos el vehículo a estado disponible
+        UPDATE Vehiculo
+        SET estado = 1  -- Disponible
+        WHERE id_vehiculo = @id_vehiculo;
+
+        -- Eliminar la venta de la tabla Venta
+        DELETE FROM Venta
+        WHERE id_venta = @id_venta;
+
+        -- Si todo ha ido bien, confirmamos la transacción
+        COMMIT TRANSACTION;
+    END TRY
+    BEGIN CATCH
+        -- Si ocurre un error, hacemos un rollback
+        ROLLBACK TRANSACTION;
+        -- Opcionalmente, lanzar el error para capturarlo en la capa de aplicación
+        THROW;
+    END CATCH
+END;
 GO
 --Generar un reporte de ventas mensuales
 CREATE PROCEDURE ReporteVentasMensuales (
