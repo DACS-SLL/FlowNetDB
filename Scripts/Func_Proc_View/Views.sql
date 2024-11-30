@@ -1,4 +1,47 @@
 --Vistas
+CREATE VIEW InformacionCliente
+AS
+SELECT 
+    c.id_cliente,
+    c.nombre AS nombre_cliente,
+    c.telefono,
+    c.RUC,
+    c.dni AS dni_cliente,
+    i.direccion,
+    i.email,
+    i.historial_compras,
+    p.id_preferencia,
+    m.tipo AS marca_preferencia,
+    mp.tipo AS metodo_pago_preferencia,
+    ci.nombre AS ciudad_cliente
+FROM Cliente c
+JOIN InformCliente i ON c.id_cliente = i.id_cliente
+JOIN Preferencias p ON i.id_preferencia = p.id_preferencia
+JOIN Marca m ON p.id_marca = m.id_marca
+JOIN Metodo_Pago mp ON p.id_metodopago = mp.id_metodo_pago
+JOIN Man_Ciudad ci ON i.id_ciudad = ci.id_ciudad;
+GO
+
+CREATE VIEW VentasDetalle
+AS
+SELECT 
+    v.id_venta,
+    v.fecha AS fecha_venta,
+    e.nombre AS nombre_empleado,
+    tc.tipo AS tipo_comprobante,
+    dv.id_vehiculo,
+    ve.precio,
+    dv.pago_inicial,
+    dv.saldo_pendiente,
+    c.nombre AS nombre_cliente,
+    ve.estado AS estado_vehiculo
+FROM Venta v
+JOIN Empleado e ON v.id_empleado = e.id_empleado
+JOIN Tipo_Comprobante tc ON v.id_tipoC = tc.id_tipoC
+JOIN DetalleVenta dv ON v.id_venta = dv.id_venta
+JOIN Vehiculo ve ON dv.id_vehiculo = ve.id_vehiculo
+JOIN Cliente c ON dv.id_cliente = c.id_cliente;
+GO
 --Vista de Información de Vehículos en Venta
 CREATE VIEW VistaVehiculosDisponibles AS
 SELECT
