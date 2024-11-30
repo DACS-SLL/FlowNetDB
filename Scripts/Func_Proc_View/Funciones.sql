@@ -1,4 +1,55 @@
 --Funciones
+CREATE FUNCTION dbo.CalcularSaldoPendiente (
+    @id_venta INT
+)
+RETURNS DECIMAL(18,2)
+AS
+BEGIN
+    DECLARE @saldo_pendiente DECIMAL(18,2);
+
+    -- Calcular el saldo pendiente como precio - pago inicial
+    SELECT @saldo_pendiente = v.precio - dv.pago_inicial
+    FROM DetalleVenta dv
+    JOIN Vehiculo v ON dv.id_vehiculo = v.id_vehiculo
+    WHERE dv.id_venta = @id_venta;
+
+    RETURN @saldo_pendiente;
+END
+GO
+CREATE FUNCTION dbo.EstadoVehiculo (
+    @id_vehiculo INT
+)
+RETURNS BIT
+AS
+BEGIN
+    DECLARE @estado BIT;
+
+    -- Obtener el estado del vehículo (0: disponible, 1: no disponible)
+    SELECT @estado = estado
+    FROM Vehiculo
+    WHERE id_vehiculo = @id_vehiculo;
+
+    RETURN @estado;
+END;
+GO
+CREATE FUNCTION dbo.VehiculoAsignadoACliente (
+    @id_cliente INT,
+    @id_vehiculo INT
+)
+RETURNS BIT
+AS
+BEGIN
+    DECLARE @resultado BIT;
+
+    -- Verificar si el vehículo está asignado al cliente
+    IF EXISTS (SELECT 1 FROM Vehiculo WHERE id_cliente = @id_cliente AND id_vehiculo = @id_vehiculo)
+        SET @resultado = 1;  -- Vehículo asignado al cliente
+    ELSE
+        SET @resultado = 0;  -- Vehículo no asignado al cliente
+
+    RETURN @resultado;
+END;
+GO
 --Calcular la Comisión Total de un Empleado de Ventas:
 CREATE FUNCTION CalcularComisionTotalEmpleado (
 @id_empleado INT,
