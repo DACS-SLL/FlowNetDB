@@ -1,3 +1,46 @@
+
+USE FlowNet;
+
+SELECT * 
+FROM sys.procedures;
+
+SELECT * 
+FROM sys.views;
+
+SELECT * 
+FROM sys.objects 
+WHERE type IN ('FN', 'IF', 'TF');
+
+
+EXEC sp_helptext 'CalcularComisionTotalEmpleado';
+
+
+
+USE FlowNet2;
+
+SELECT name, parent_class_desc, create_date
+FROM sys.triggers;
+
+EXEC sp_helptext 'ActualizarInventarioVehiculo';
+DECLARE @id_vehiculo INT;
+
+SET @id_vehiculo = 1;
+
+INSERT INTO Venta (id_empleado, fecha, id_tipoC, XMLSUNAT)
+VALUES (1, GETDATE(), 1, '<xml>Ejemplo</xml>');
+
+SELECT estado FROM Vehiculo WHERE id_vehiculo = @id_vehiculo;
+
+
+INSERT INTO Venta (id_empleado, fecha, id_tipoC, XMLSUNAT)
+VALUES (2, GETDATE(), 2, '<xml>Ejemplo</xml>');
+
+SELECT comisiones FROM EmpleadoVentas WHERE id_empleado = 2;
+
+INSERT INTO Pagos (id_venta, monto) VALUES (1, 500);
+SELECT saldo_pendiente FROM DetalleVenta WHERE id_venta = 1;
+
+
 -- Antes del Trigger 1: crear la columna Estado 
 alter table Vehiculo
 add estado nvarchar(10)
