@@ -29,31 +29,58 @@ END
 
 GO
 --Registrar una venta con comprobante electrónico
-CREATE PROCEDURE RegistrarVentaConComprobante (
-@id_cliente INT,
-@id_empleado INT,
-@id_vehiculo INT,
-@fecha DATETIME,
-@metodo_pago NVARCHAR(50),
-@pago_inicial DECIMAL(18, 2),
-@saldo_pendiente DECIMAL(18, 2),
-@tipo_comprobante NVARCHAR(50),
-@impuestos DECIMAL(18, 2)
+CREATE PROCEDURE InsertarVenta(
+    @id_empleado INT,
+    @fecha DATETIME,
+    @id_tipoC INT,
+    @id_cliente INT,
+    @id_vehiculo INT,
+    @pago_inicial DECIMAL(18, 2),
+    @id_metodo_pago INT
 )
 AS
 BEGIN
-DECLARE @id_venta INT;
--- Registrar la venta
-INSERT INTO Venta (id_cliente, id_empleado, id_vehiculo, fecha, metodo_pago,
-pago_inicial, saldo_pendiente, tipo_comprobante)
-VALUES (@id_cliente, @id_empleado, @id_vehiculo, @fecha, @metodo_pago,
-@pago_inicial, @saldo_pendiente, @tipo_comprobante);
-SET @id_venta = SCOPE_IDENTITY();
--- Generar el comprobante electrónico
-INSERT INTO ComprobanteElectronico (id_venta, tipo, formatoXML, fecha_emision,
-impuestos)
-VALUES (@id_venta, @tipo_comprobante, '<XMLDatos>', @fecha, @impuestos);
+    -- Variable para almacenar el ID de la nueva venta
+    DECLARE @id_venta INT;
+
+    -- Comienza la transacción
+    BEGIN TRANSACTION;
+
+    BEGIN TRY
+        -- Insertar una nueva venta en la tabla Venta
+        INSERT INTO Venta (id_empleado, fecha, id_tipoC)
+        VALUES (@id_empleado, @fecha, @id_tipoC);
+
+        -- Obtener el ID de la nueva venta
+        SET @id_venta = SCOPE_IDENTITY();
+
+        -- Insertar detalles de la venta en la tabla DetalleVenta
+        INSERT INTO DetalleVenta (id_venta, id_vehiculo, id_metodo_pago, pago_inicial, id_cliente, re_registro)
+        VALUES (@id_venta, @id_vehiculo, @id_metodo_pago, @pago_inicial, @id_cliente, 0);
+
+        -- Actualizar el estado del vehículo a no disponible (estado = 0)
+        UPDATE Vehiculo
+        SET estado = 0 -- No disponible
+        WHERE id_vehiculo = @id_vehiculo;
+
+		UPDATE DetalleVenta
+		SET saldo_pendiente = v.precio - @pago_inicial
+		FROM DetalleVenta d
+		JOIN Vehiculo v ON d.id_vehiculo = v.id_vehiculo
+		WHERE d.id_venta = @id_venta;
+
+
+        -- Si todo ha ido bien, confirmamos la transacción
+        COMMIT TRANSACTION;
+    END TRY
+    BEGIN CATCH
+        -- Si ocurre un error, hacemos un rollback
+        ROLLBACK TRANSACTION;
+        -- Opcionalmente, lanzar el error para capturarlo en la capa de aplicación
+        THROW;
+    END CATCH
 END;
+GO
 GO
 --Generar un reporte de ventas mensuales
 CREATE PROCEDURE ReporteVentasMensuales (
