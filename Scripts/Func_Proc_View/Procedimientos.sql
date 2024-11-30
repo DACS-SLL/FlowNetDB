@@ -123,6 +123,72 @@ BEGIN
     END CATCH
 END;
 GO
+CREATE PROCEDURE ConsultarVenta(
+    @id_venta INT
+)
+AS
+BEGIN
+    -- Consulta para obtener la información de la venta
+    SELECT v.id_venta,
+           v.fecha,
+           e.nombre AS empleado_nombre,
+           tc.tipo AS tipo_comprobante,
+           dv.id_vehiculo,
+           ve.precio AS precio_vehiculo,
+           dv.pago_inicial,
+           dv.saldo_pendiente,
+           dv.id_cliente,
+           c.nombre AS cliente_nombre
+    FROM Venta v
+    INNER JOIN Empleado e ON v.id_empleado = e.id_empleado
+    INNER JOIN Tipo_Comprobante tc ON v.id_tipoC = tc.id_tipoC
+    INNER JOIN DetalleVenta dv ON v.id_venta = dv.id_venta
+    INNER JOIN Vehiculo ve ON dv.id_vehiculo = ve.id_vehiculo
+    INNER JOIN Cliente c ON dv.id_cliente = c.id_cliente
+    WHERE v.id_venta = @id_venta;
+END;
+GO
+
+CREATE PROCEDURE RegistrarVehiculo(
+    @id_cliente INT,              
+    @precio DECIMAL(18, 2),        
+    @año INT,                      
+    @id_marca INT,                 
+    @modelo NVARCHAR(100),         
+    @potencia NVARCHAR(50),        
+    @kms DECIMAL(10, 2)           
+)
+AS
+BEGIN
+    -- Comienza la transacción
+    BEGIN TRANSACTION;
+
+    BEGIN TRY
+        -- Insertar el nuevo vehículo en la tabla Vehiculo
+        INSERT INTO Vehiculo (id_cliente, precio)
+        VALUES (@id_cliente, @precio);
+
+        -- Obtener el ID del vehículo recién insertado
+        DECLARE @id_vehiculo INT;
+        SET @id_vehiculo = SCOPE_IDENTITY();
+
+        -- Insertar los detalles del vehículo en la tabla Detalle_Vehiculo
+        INSERT INTO Detalle_Vehiculo (id_vehiculo, año, id_marca, modelo, potencia, kms)
+        VALUES (@id_vehiculo, @año, @id_marca, @modelo, @potencia, @kms);
+
+        -- Confirmar la transacción si todo es exitoso
+        COMMIT TRANSACTION;
+    END TRY
+    BEGIN CATCH
+        -- Si ocurre un error, hacer un rollback
+        ROLLBACK TRANSACTION;
+        -- Lanzar el error para su captura en la capa de la aplicación
+        THROW;
+    END CATCH
+END;
+
+GO
+	
 --Generar un reporte de ventas mensuales
 CREATE PROCEDURE ReporteVentasMensuales (
 @mes INT,
