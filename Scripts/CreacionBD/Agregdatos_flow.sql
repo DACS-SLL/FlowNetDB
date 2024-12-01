@@ -21,7 +21,7 @@ VALUES ('Toyota'), ('Nissan'), ('Ford');
 
 INSERT INTO Preferencias (id_marca, id_metodopago)
 SELECT TOP 100 
-    ABS(CHECKSUM(NEWID())) % 5 + 1,
+    ABS(CHECKSUM(NEWID())) % 3 + 1,
     ABS(CHECKSUM(NEWID())) % 5 + 1
 FROM sys.all_columns;
 
@@ -65,7 +65,7 @@ BEGIN
 END;
 
 INSERT INTO EmpleadoVentas (id_empleado, comisiones)
-SELECT TOP 5 id_empleado, CAST(RAND(CHECKSUM(NEWID())) * 1000 AS DECIMAL(18,2))
+SELECT TOP 2 id_empleado, CAST(RAND(CHECKSUM(NEWID())) * 1000 AS DECIMAL(18,2))
 FROM Empleado
 WHERE id_empleado NOT IN (SELECT id_empleado FROM EmpleadoVentas)
 ORDER BY NEWID();
@@ -114,7 +114,7 @@ WHERE id_vehiculo NOT IN (SELECT id_vehiculo FROM Detalle_Vehiculo);
 
 INSERT INTO Concesionario (nombre_concesionario, direccion, id_ciudad, capacidad)
 SELECT TOP 10
-    CONCAT('Concesionario ', ROW_NUMBER() OVER (ORDER BY NEWID())),
+    "Concesionario La Salle",
     CONCAT('Dirección ', ROW_NUMBER() OVER (ORDER BY NEWID())),
     ABS(CHECKSUM(NEWID())) % 10 + 1,
     50 + (ABS(CHECKSUM(NEWID())) % 50)
@@ -143,21 +143,15 @@ INSERT INTO Modelo_Repuesto (nombre_modelo)
 VALUES ('Llantas'), ('Motor'), ('Carburador'), ('Frenos'), ('Rotadores');
 
 
-SET @i = 1;
-WHILE @i <= 5
-BEGIN
-    INSERT INTO Mantenimiento (id_vehiculo, id_empleado, id_taller, tipo, fecha, observaciones)
-    VALUES (
-        ABS(CHECKSUM(NEWID())) % 500 + 1,
-        ABS(CHECKSUM(NEWID ())) % 5 + 1,
-        ABS(CHECKSUM(NEWID())) % 50 + 1,
-        CASE WHEN ABS(CHECKSUM(NEWID())) % 2 = 0 THEN 'Correctivo' ELSE 'Preventivo' END,
+INSERT INTO Mantenimiento (id_vehiculo, id_empleado, id_concesionario, tipo, fecha, observaciones)
+VALUES (
+        id_vehiculo,
+        id_empleado,
+        id_concesionario,
+        tipo,
         GETDATE(),
-        'Observaciones del mantenimiento'
+        observaciones,
     );
-    SET @i = @i + 1;
-END;
-
 
 SET @i = 1;
 WHILE @i <= 500
@@ -166,7 +160,7 @@ BEGIN
     VALUES (
         ABS(CHECKSUM(NEWID())) % 500 + 1,
         ABS(CHECKSUM(NEWID())) % 3 + 1,
-        ABS(CHECKSUM(NEWID())) % 3 + 1,
+        ABS(CHECKSUM(NEWID())) % 5 + 1,
         CONCAT('Repuesto ', @i),
         CAST(RAND(CHECKSUM(NEWID())) * 1000 AS DECIMAL(18,2)),
         GETDATE(),
@@ -177,14 +171,6 @@ END;
 
 
 -- INSERCIONES CON SUBCONSULTAS
-INSERT INTO Venta (id_empleado, fecha, id_tipoC, XMLSUNAT)
-VALUES (
-    (SELECT TOP 1 id_empleado FROM Empleado WHERE nombre = 'Carlos Gómez'),  
-    GETDATE(), 
-    (SELECT TOP 1 id_tipoC FROM Tipo_Comprobante WHERE tipo = 'Factura'),
-    NULL
-);
-
 INSERT INTO Mantenimiento (id_vehiculo, id_empleado, tipo, fecha, observaciones)
 VALUES (
     (SELECT id_vehiculo FROM Detalle_Vehiculo WHERE modelo = 'Toyota Corolla' AND año = 2020),
@@ -192,32 +178,4 @@ VALUES (
     'Preventivo', 
     GETDATE(), 
     'Cambio de aceite y revisión general'
-);
-
-INSERT INTO DetalleVenta (id_venta, id_vehiculo, id_metodo_pago, pago_inicial)
-VALUES (
-    (SELECT TOP 1 id_venta FROM DetalleVenta WHERE id_cliente = (SELECT id_cliente FROM Cliente WHERE nombre = 'Juan Pérez')), 
-    (SELECT TOP 1 id_vehiculo FROM Detalle_Vehiculo WHERE modelo = 'Ford' AND año = 2019),
-    (SELECT TOP 1 id_metodo_pago FROM Metodo_Pago WHERE tipo = 'Tarjeta de Crédito'),
-    18000.00
-);
-
-INSERT INTO Repuestos (nombre, precio, estado, id_mantenimiento)
-VALUES (
-    'Filtro de aceite', 
-    50.00, 
-    'Nuevo', 
-    (SELECT TOP 1 id_mantenimiento FROM Mantenimiento ORDER BY fecha DESC)
-);
-
-INSERT INTO ContratoCompra (id_venta, fecha)
-VALUES (
-    (SELECT TOP 1 id_venta 
-     FROM Venta 
-     WHERE id_empleado = (SELECT id_empleado FROM Empleado WHERE nombre = 'Sofía Martínez') 
-     ORDER BY fecha DESC),
-    ISNULL((SELECT TOP 1 fecha 
-            FROM Venta 
-            WHERE id_empleado = (SELECT id_empleado FROM Empleado WHERE nombre = 'Sofía Martínez') 
-            ORDER BY fecha DESC), GETDATE())
 );
