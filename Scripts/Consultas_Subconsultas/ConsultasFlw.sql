@@ -97,8 +97,10 @@ SELECT id
 FROM Empleado 
 WHERE nombre = 'Carlos Gómez';
 
+-- Consultar los usuarios y verificar la contraseña desencriptando en la comparación
+DECLARE @input_contraseña NVARCHAR(50) = 'password123'; --(cambiar por contraseña)
 
-
-
-
-
+SELECT nombreusuario, rol
+FROM Usuarios
+WHERE nombreusuario = 'usuario1' --(cambiar por nombre de usuario)
+AND contraseña = HASHBYTES('SHA2_256', @input_contraseña);  -- Comparar la contraseña encriptada
