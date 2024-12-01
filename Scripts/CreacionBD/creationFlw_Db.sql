@@ -337,3 +337,11 @@ CREATE TABLE ComprobanteElectronico (
     impuestos DECIMAL(18, 2)
 );
 GO
+
+-- Crear tabla Usuarios
+CREATE TABLE Usuarios (
+    id INT PRIMARY KEY IDENTITY(1,1),
+    nombreusuario NVARCHAR(50) NOT NULL,
+    contraseña VARBINARY(64) NOT NULL,
+    rol NVARCHAR(20) NOT NULL             
+);
