@@ -184,8 +184,9 @@ VALUES (
 
 --NO MOVER
 -- Insertar un usuario con la contraseña encriptada se usará SHA2_256 para encriptar la contraseña
-DECLARE @nombreusuario NVARCHAR(50) = 'usuario1';
-DECLARE @contraseña NVARCHAR(50) = 'password123';
+-- Admin Daniel
+DECLARE @nombreusuario NVARCHAR(50) = 'DanPk';
+DECLARE @contraseña NVARCHAR(50) = 'AdminDcs';
 DECLARE @rol NVARCHAR(20) = 'admin';
 
 INSERT INTO Usuarios (nombreusuario, contraseña, rol)
@@ -194,3 +195,56 @@ VALUES (
     HASHBYTES('SHA2_256', @contraseña),  -- Encriptar la contraseña
     @rol
 );
+
+
+-- AnalistaBryan
+DECLARE @nombreusuario NVARCHAR(50) = 'FireB';
+DECLARE @contraseña NVARCHAR(50) = 'AnBrt';
+DECLARE @rol NVARCHAR(20) = 'analista';
+
+INSERT INTO Usuarios (nombreusuario, contraseña, rol)
+VALUES (
+    @nombreusuario,
+    HASHBYTES('SHA2_256', @contraseña),  -- Encriptar la contraseña
+    @rol
+);
+
+-- Revisor Enyel
+DECLARE @nombreusuario NVARCHAR(50) = 'WEnyel';
+DECLARE @contraseña NVARCHAR(50) = 'RevEny';
+DECLARE @rol NVARCHAR(20) = 'revisor';
+
+INSERT INTO Usuarios (nombreusuario, contraseña, rol)
+VALUES (
+    @nombreusuario,
+    HASHBYTES('SHA2_256', @contraseña),  -- Encriptar la contraseña
+    @rol
+);
+
+-- Empleados Andrea y Alvaro
+DECLARE @nombreusuario NVARCHAR(50) = 'Andrea_V';
+DECLARE @contraseña NVARCHAR(50) = 'EmplAndr';
+DECLARE @rol NVARCHAR(20) = 'empleado';
+
+INSERT INTO Usuarios (nombreusuario, contraseña, rol)
+VALUES (
+    @nombreusuario,
+    HASHBYTES('SHA2_256', @contraseña),  -- Encriptar la contraseña
+    @rol
+);
+
+DECLARE @nombreusuario NVARCHAR(50) = 'AlvMax';
+DECLARE @contraseña NVARCHAR(50) = 'EmplAlv';
+DECLARE @rol NVARCHAR(20) = 'empleado';
+
+INSERT INTO Usuarios (nombreusuario, contraseña, rol)
+VALUES (
+    @nombreusuario,
+    HASHBYTES('SHA2_256', @contraseña),  -- Encriptar la contraseña
+    @rol
+);
+
+
+
+
+
