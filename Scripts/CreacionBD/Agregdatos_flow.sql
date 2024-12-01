@@ -179,3 +179,18 @@ VALUES (
     GETDATE(), 
     'Cambio de aceite y revisión general'
 );
+
+
+
+--NO MOVER
+-- Insertar un usuario con la contraseña encriptada se usará SHA2_256 para encriptar la contraseña
+DECLARE @nombreusuario NVARCHAR(50) = 'usuario1';
+DECLARE @contraseña NVARCHAR(50) = 'password123';
+DECLARE @rol NVARCHAR(20) = 'admin';
+
+INSERT INTO Usuarios (nombreusuario, contraseña, rol)
+VALUES (
+    @nombreusuario,
+    HASHBYTES('SHA2_256', @contraseña),  -- Encriptar la contraseña
+    @rol
+);
