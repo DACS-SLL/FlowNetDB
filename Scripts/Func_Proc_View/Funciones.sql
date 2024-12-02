@@ -76,10 +76,11 @@ BEGIN
 DECLARE @descuento_promedio DECIMAL(18, 2);
 SELECT @descuento_promedio = AVG((v.precio - dv.pago_inicial) / v.precio * 100)
 FROM Vehiculo v
-JOIN Venta dv ON v.id_vehiculo = dv.id_vehiculo;
+JOIN DetalleVenta dv ON v.id_vehiculo = dv.id_vehiculo;
 RETURN ISNULL(@descuento_promedio, 0);
 END;
 GO
+
 --Determinar la Capacidad Disponible en Talleres
 CREATE FUNCTION CapacidadDisponibleTaller (
 @id_taller INT
@@ -100,7 +101,7 @@ END;
 GO
 
 
-CREATE OR REPLACE FUNCTION verificar_cliente_existente(
+/*CREATE FUNCTION verificar_cliente_existente(
     p_nombre Cliente.nombre%TYPE,  
     p_email Cliente.email%TYPE     
 ) RETURN BOOLEAN IS
@@ -111,7 +112,4 @@ BEGIN
     WHERE nombre = p_nombre AND email = p_email;
 
     RETURN cliente_existente;
-END;
-
-
-
+END;*/
