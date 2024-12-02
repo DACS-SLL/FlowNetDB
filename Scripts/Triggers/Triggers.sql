@@ -24,12 +24,12 @@ BEGIN
     DECLARE @id_cliente INT;
     DECLARE @precio DECIMAL(18,2);
 
-    -- Obtener los datos del vehículo insertado
+    -- Obtener los datos del vehÃ­culo insertado
     SELECT @id_vehiculo = id_vehiculo, @id_cliente = id_cliente, @precio = precio
     FROM inserted;
 
     -- Imprimir mensaje
-    PRINT 'Nuevo vehículo registrado: ID Vehículo: ' + CAST(@id_vehiculo AS NVARCHAR(10)) + ', Cliente ID: ' + CAST(@id_cliente AS NVARCHAR(10)) + ', Precio: ' + CAST(@precio AS NVARCHAR(18));
+    PRINT 'Nuevo vehÃ­culo registrado: ID VehÃ­culo: ' + CAST(@id_vehiculo AS NVARCHAR(10)) + ', Cliente ID: ' + CAST(@id_cliente AS NVARCHAR(10)) + ', Precio: ' + CAST(@precio AS NVARCHAR(18));
 END;
 GO
 
@@ -51,7 +51,7 @@ BEGIN
     INNER JOIN DetalleVenta dv ON c.id_cliente = dv.id_cliente
     WHERE dv.id_venta = @id_venta;
 
-    -- Comienza la transacción para restaurar el estado del vehículo
+    -- Comienza la transacciÃ³n para restaurar el estado del vehÃ­culo
     BEGIN TRANSACTION;
 
     BEGIN TRY
@@ -60,19 +60,19 @@ BEGIN
         FROM DetalleVenta
         WHERE id_venta = @id_venta;
 
-        -- Restaurar el estado del vehículo a disponible (estado = 1)
+        -- Restaurar el estado del vehÃ­culo a disponible (estado = 1)
         UPDATE Vehiculo
         SET estado = 1  -- Disponible
         WHERE id_vehiculo = @id_vehiculo;
 
-        -- Confirmar la transacción
+        -- Confirmar la transacciÃ³n
         COMMIT TRANSACTION;
 
         -- Imprimir mensaje indicando que la venta fue eliminada
-        PRINT 'Venta eliminada con éxito. Cliente: ' + @cliente_nombre + ', ID Venta: ' + CAST(@id_venta AS NVARCHAR(10));
+        PRINT 'Venta eliminada con Ã©xito. Cliente: ' + @cliente_nombre + ', ID Venta: ' + CAST(@id_venta AS NVARCHAR(10));
     END TRY
     BEGIN CATCH
-        -- Si ocurre un error, hacer rollback de la transacción
+        -- Si ocurre un error, hacer rollback de la transacciÃ³n
         ROLLBACK TRANSACTION;
         -- Lanzar el error
         THROW;
@@ -92,14 +92,14 @@ BEGIN
     -- Obtener la fecha de la venta insertada
     SELECT @fecha = fecha FROM inserted;
 
-    -- Extraer el mes y año de la fecha de la venta
+    -- Extraer el mes y aÃ±o de la fecha de la venta
     SET @mes = MONTH(@fecha);
     SET @anio = YEAR(@fecha);
 
-    -- Comprobar si la venta pertenece al mes y año de interés
-    -- Aquí podrías agregar un proceso que active algún reporte o log
+    -- Comprobar si la venta pertenece al mes y aÃ±o de interÃ©s
+    -- AquÃ­ podrÃ­as agregar un proceso que active algÃºn reporte o log
     PRINT 'Nueva venta registrada. Fecha: ' + CAST(@fecha AS NVARCHAR(20)) + 
-          ', Mes: ' + CAST(@mes AS NVARCHAR(2)) + ', Año: ' + CAST(@anio AS NVARCHAR(4));
+          ', Mes: ' + CAST(@mes AS NVARCHAR(2)) + ', AÃ±o: ' + CAST(@anio AS NVARCHAR(4));
 
 END;
 GO
@@ -119,26 +119,26 @@ BEGIN
     FROM inserted;
 
     -- Imprimir mensaje con detalles de la venta
-    PRINT 'Detalle de venta registrado: ID Venta: ' + CAST(@id_venta AS NVARCHAR(10)) + ', Vehículo ID: ' + CAST(@id_vehiculo AS NVARCHAR(10)) + ', Cliente ID: ' + CAST(@id_cliente AS NVARCHAR(10)) + ', Pago Inicial: ' + CAST(@pago_inicial AS NVARCHAR(18));
+    PRINT 'Detalle de venta registrado: ID Venta: ' + CAST(@id_venta AS NVARCHAR(10)) + ', VehÃ­culo ID: ' + CAST(@id_vehiculo AS NVARCHAR(10)) + ', Cliente ID: ' + CAST(@id_cliente AS NVARCHAR(10)) + ', Pago Inicial: ' + CAST(@pago_inicial AS NVARCHAR(18));
 END;
 GO
 
 
 
---Prubas
+--Pruebas
 -- Registrar un cliente
 EXEC RegistrarCliente
-    @nombre = 'Juan Pérez',
-    @telefono = '987654321',
+    @nombre = 'Juan PÃ©rez',
+    @telefono = '987654325',
     @RUC = '22345678402',
     @dni = '113456078';
 
 
-	-- Registrar un vehículo para el cliente
+	-- Registrar un vehÃ­culo para el cliente
 EXEC RegistrarVehiculo
     @id_cliente = 1, 
     @precio = 15000.00,
-    @año = 2020,
+    @aÃ±o = 2020,
     @id_marca = 1,  
     @modelo = 'Toyota Corolla',
     @potencia = '150 HP',
@@ -156,7 +156,7 @@ EXEC InsertarVenta
 
 
 
-	DELETE FROM Venta
+DELETE FROM Venta
 WHERE id_venta = (SELECT MAX(id_venta) FROM Venta); 
 
 -- Primero, insertar una venta para asegurarte de que hay una venta para eliminar
@@ -169,20 +169,6 @@ EXEC InsertarVenta
     @pago_inicial = 2000.00,  
     @id_metodo_pago = 1;
 
-
--- Primero, insertar una venta para asegurarte de que hay una venta para eliminar
-EXEC InsertarVenta
-    @id_empleado = 1, 
-    @fecha = '2024-12-10',  
-    @id_tipoC = 1, 
-    @id_cliente = 3,  
-    @id_vehiculo = 4, 
-    @pago_inicial = 2000.00,  
-    @id_metodo_pago = 1;
-
-
--- Ejecutar el procedimiento de eliminación de venta
+-- Ejecutar el procedimiento de eliminaciÃ³n de venta
 EXEC EliminarVenta
-    @id_venta = 1;  -
-
-
+    @id_venta = 1; 
