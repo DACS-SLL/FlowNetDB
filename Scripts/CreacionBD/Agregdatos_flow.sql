@@ -42,14 +42,12 @@ INSERT INTO InformCliente (id_cliente, direccion, id_ciudad, historial_compras, 
 SELECT 
     id_cliente,
     CONCAT('Calle ', id_cliente, ' #', ABS(CHECKSUM(NEWID())) % 100),
-    ABS(CHECKSUM(NEWID())) % 16 + 1, 
+    ABS(CHECKSUM(NEWID())) % 15 + 1, 
     'Sin historial',
     CONCAT('cliente', id_cliente, '@correo.com'),
     ABS(CHECKSUM(NEWID())) % 50 + 1 
 FROM Cliente
 WHERE id_cliente NOT IN (SELECT id_cliente FROM InformCliente);
-
-
 
 
 SET @i = 1;
@@ -114,7 +112,7 @@ WHERE id_vehiculo NOT IN (SELECT id_vehiculo FROM Detalle_Vehiculo);
 
 INSERT INTO Concesionario (nombre_concesionario, direccion, id_ciudad, capacidad)
 SELECT TOP 10
-    "Concesionario La Salle",
+    'Consecionario La Salle',
     CONCAT('Dirección ', ROW_NUMBER() OVER (ORDER BY NEWID())),
     ABS(CHECKSUM(NEWID())) % 10 + 1,
     50 + (ABS(CHECKSUM(NEWID())) % 50)
@@ -142,23 +140,25 @@ VALUES ('Toyota'), ('Nissan'), ('Ford');
 INSERT INTO Modelo_Repuesto (nombre_modelo)
 VALUES ('Llantas'), ('Motor'), ('Carburador'), ('Frenos'), ('Rotadores');
 
+Select * from Mantenimiento
 
-INSERT INTO Mantenimiento (id_vehiculo, id_empleado, id_concesionario, tipo, fecha, observaciones)
+INSERT INTO Mantenimiento (id_vehiculo, id_empleado, id_taller, tipo, fecha, observaciones)
 VALUES (
-        id_vehiculo,
-        id_empleado,
-        id_concesionario,
-        tipo,
+        ABS(CHECKSUM(NEWID())) % 500 + 1,
+        ABS(CHECKSUM(NEWID())) % 5 + 1,
+        ABS(CHECKSUM(NEWID())) % 10 + 1,
+        'Preventivo',
         GETDATE(),
-        observaciones,
-    );
+        'Ninguna'
+    ); -- Ejecutar 5 veces
 
+DECLARE @i INT = 1;
 SET @i = 1;
 WHILE @i <= 500
 BEGIN
     INSERT INTO Repuestos (id_mantenimiento, id_marca, id_modelo, nombre, precio, fecha_de_compra, estado)
     VALUES (
-        ABS(CHECKSUM(NEWID())) % 500 + 1,
+        ABS(CHECKSUM(NEWID())) % 5 + 1,
         ABS(CHECKSUM(NEWID())) % 3 + 1,
         ABS(CHECKSUM(NEWID())) % 5 + 1,
         CONCAT('Repuesto ', @i),
@@ -233,6 +233,7 @@ VALUES (
     @rol
 );
 
+
 DECLARE @nombreusuario NVARCHAR(50) = 'AlvMax';
 DECLARE @contraseña NVARCHAR(50) = 'EmplAlv';
 DECLARE @rol NVARCHAR(20) = 'empleado';
@@ -243,8 +244,3 @@ VALUES (
     HASHBYTES('SHA2_256', @contraseña),  -- Encriptar la contraseña
     @rol
 );
-
-
-
-
-
