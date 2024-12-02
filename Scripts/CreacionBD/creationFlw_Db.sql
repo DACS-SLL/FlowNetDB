@@ -100,8 +100,7 @@ IF OBJECT_ID('InformCliente', 'U') IS NOT NULL DROP TABLE InformCliente;
 IF OBJECT_ID('Vehiculo', 'U') IS NOT NULL DROP TABLE Vehiculo;
 IF OBJECT_ID('Detalle_Vehiculo', 'U') IS NOT NULL DROP TABLE Detalle_Vehiculo;
 IF OBJECT_ID('Venta', 'U') IS NOT NULL DROP TABLE Venta;
-IF OBJECT_ID('DetalleVenta', 'U ```sql
-') IS NOT NULL DROP TABLE DetalleVenta;
+IF OBJECT_ID('DetalleVenta', 'U ```sql') IS NOT NULL DROP TABLE DetalleVenta;
 IF OBJECT_ID('Taller', 'U') IS NOT NULL DROP TABLE Taller;
 IF OBJECT_ID('Mantenimiento', 'U') IS NOT NULL DROP TABLE Mantenimiento;
 IF OBJECT_ID('Marca_Repuesto', 'U') IS NOT NULL DROP TABLE Marca_Repuesto;
@@ -234,14 +233,16 @@ CREATE TABLE Detalle_Vehiculo (
 
 GO
 
-CREATE TABLE Venta (
+CREATE TABLE Venta ( 
     id_venta INT PRIMARY KEY IDENTITY(1,1),
-    id_empleado INT FOREIGN KEY REFERENCES Empleado(id_empleado),
+    id_empleado INT,
     fecha DATETIME NOT NULL,
-    id_tipoC INT FOREIGN KEY REFERENCES Tipo_Comprobante (id_tipoC),
-    XMLSUNAT TEXT,
+    id_tipoC INT,
+    FOREIGN KEY (id_empleado) REFERENCES Empleado(id_empleado), 
+    FOREIGN KEY (id_tipoC) REFERENCES Tipo_Comprobante(id_tipoC)
 );
-GO
+
+
 
 CREATE TABLE DetalleVenta (
     id_venta INT FOREIGN KEY REFERENCES Venta(id_venta),
@@ -345,3 +346,4 @@ CREATE TABLE Usuarios (
     contraseña VARBINARY(64) NOT NULL,
     rol NVARCHAR(20) NOT NULL             
 );
+GO

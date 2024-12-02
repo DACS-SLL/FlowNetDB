@@ -1,113 +1,188 @@
-USE FlowNet;
-GO
--- Trigger 1: Verificar existencia de RUC antes de insertar un cliente
--- Este trigger se ejecuta antes de insertar un cliente, verificando si el RUC ya existe en la base de datos
-CREATE TRIGGER VerificarRUC
-ON [dbo].[Cliente]
+CREATE TRIGGER trg_AfterInsertCliente
+ON Cliente
 AFTER INSERT
 AS
 BEGIN
-    DECLARE @RUC NVARCHAR(20);
+    DECLARE @cliente_nombre NVARCHAR(100);
+    DECLARE @cliente_dni NVARCHAR(15);
 
-    -- Obtener el RUC del cliente insertado
-    SELECT @RUC = RUC FROM INSERTED;
+    -- Obtener el nombre y el DNI del cliente insertado
+    SELECT @cliente_nombre = nombre, @cliente_dni = dni
+    FROM inserted;
 
-    -- Verificar si el RUC ya existe en la tabla Cliente
-    IF EXISTS (SELECT 1 FROM [dbo].[Cliente] WHERE RUC = @RUC)
-    BEGIN
-        PRINT 'Error: El RUC ya estÃ¡ registrado.'; -- Mensaje de error si el RUC ya existe
-        ROLLBACK TRANSACTION; -- Cancelar la transacciÃ³n
-    END
+    -- Imprimir mensaje
+    PRINT 'Cliente registrado: ' + @cliente_nombre + ' con DNI: ' + @cliente_dni;
 END;
 GO
 
-
--- Trigger 2: Actualizar estado de vehÃ­culo al insertar una venta
--- Este trigger se ejecuta despuÃ©s de insertar una venta y actualiza el estado del vehÃ­culo a "no disponible"
-CREATE TRIGGER ActualizarEstadoVehiculo
-ON [dbo].[DetalleVenta]
+CREATE TRIGGER trg_AfterInsertVehiculo
+ON Vehiculo
 AFTER INSERT
 AS
 BEGIN
     DECLARE @id_vehiculo INT;
+    DECLARE @id_cliente INT;
+    DECLARE @precio DECIMAL(18,2);
 
-    -- Obtener el ID del vehÃ­culo de la venta insertada
-    SELECT @id_vehiculo = id_vehiculo FROM INSERTED;
+    -- Obtener los datos del vehículo insertado
+    SELECT @id_vehiculo = id_vehiculo, @id_cliente = id_cliente, @precio = precio
+    FROM inserted;
 
-    -- Actualizar el estado del vehÃ­culo a "no disponible" (estado = 0)
-    UPDATE Vehiculo
-    SET estado = 0
-    WHERE id_vehiculo = @id_vehiculo;
+    -- Imprimir mensaje
+    PRINT 'Nuevo vehículo registrado: ID Vehículo: ' + CAST(@id_vehiculo AS NVARCHAR(10)) + ', Cliente ID: ' + CAST(@id_cliente AS NVARCHAR(10)) + ', Precio: ' + CAST(@precio AS NVARCHAR(18));
 END;
 GO
 
-
--- Trigger 3: Calcular saldo pendiente al insertar una venta
--- Este trigger se ejecuta despuÃ©s de insertar una venta, calculando el saldo pendiente basado en el precio del vehÃ­culo y el pago inicial
-CREATE TRIGGER CalcularSaldoPendiente
-ON [dbo].[DetalleVenta]
-AFTER INSERT
-AS
-BEGIN
-    DECLARE @id_venta INT, @pago_inicial DECIMAL(18, 2), @precio DECIMAL(18, 2);
-
-    -- Obtener el ID de la venta y el pago inicial de la tabla INSERTED
-    SELECT @id_venta = id_venta, @pago_inicial = pago_inicial
-    FROM INSERTED;
-
-    -- Obtener el precio del vehÃ­culo de la tabla Vehiculo
-    SELECT @precio = precio
-    FROM Vehiculo v
-    JOIN DetalleVenta dv ON v.id_vehiculo = dv.id_vehiculo
-    WHERE dv.id_venta = @id_venta;
-
-    -- Actualizar el saldo pendiente en DetalleVenta
-    UPDATE DetalleVenta
-    SET saldo_pendiente = @precio - @pago_inicial
-    WHERE id_venta = @id_venta;
-END;
-GO
-
-
--- Trigger 4: Restaurar vehÃ­culo a disponible cuando se elimina una venta
--- Este trigger se ejecuta despuÃ©s de eliminar una venta y devuelve el estado del vehÃ­culo a "disponible" (estado = 1)
-CREATE TRIGGER RestaurarVehiculoEstado
-ON [dbo].[Venta]
+CREATE TRIGGER trg_AfterDeleteVenta
+ON Venta
 AFTER DELETE
 AS
 BEGIN
+    DECLARE @id_venta INT;
     DECLARE @id_vehiculo INT;
+    DECLARE @cliente_nombre NVARCHAR(100);
 
-    -- Obtener el ID del vehÃ­culo asociado con la venta eliminada
-    SELECT @id_vehiculo = id_vehiculo
-    FROM DetalleVenta
-    WHERE id_venta IN (SELECT id_venta FROM DELETED);
+    -- Obtener el id_venta de la fila eliminada en la tabla Venta (tabla 'deleted' en un trigger AFTER DELETE)
+    SELECT @id_venta = id_venta FROM deleted;
 
-    -- Restaurar el estado del vehÃ­culo a "disponible" (estado = 1)
-    UPDATE Vehiculo
-    SET estado = 1
-    WHERE id_vehiculo = @id_vehiculo;
+    -- Obtener el nombre del cliente relacionado con la venta eliminada
+    SELECT @cliente_nombre = c.nombre
+    FROM Cliente c
+    INNER JOIN DetalleVenta dv ON c.id_cliente = dv.id_cliente
+    WHERE dv.id_venta = @id_venta;
+
+    -- Comienza la transacción para restaurar el estado del vehículo
+    BEGIN TRANSACTION;
+
+    BEGIN TRY
+        -- Obtener el id_vehiculo asociado a la venta eliminada
+        SELECT @id_vehiculo = id_vehiculo
+        FROM DetalleVenta
+        WHERE id_venta = @id_venta;
+
+        -- Restaurar el estado del vehículo a disponible (estado = 1)
+        UPDATE Vehiculo
+        SET estado = 1  -- Disponible
+        WHERE id_vehiculo = @id_vehiculo;
+
+        -- Confirmar la transacción
+        COMMIT TRANSACTION;
+
+        -- Imprimir mensaje indicando que la venta fue eliminada
+        PRINT 'Venta eliminada con éxito. Cliente: ' + @cliente_nombre + ', ID Venta: ' + CAST(@id_venta AS NVARCHAR(10));
+    END TRY
+    BEGIN CATCH
+        -- Si ocurre un error, hacer rollback de la transacción
+        ROLLBACK TRANSACTION;
+        -- Lanzar el error
+        THROW;
+    END CATCH
 END;
 GO
 
-
--- Trigger 5: Generar un historial de cambios de precio de vehÃ­culos
--- Este trigger guarda el historial de precios cuando se actualiza el precio de un vehÃ­culo
-CREATE TRIGGER RegistrarCambioPrecioVehiculo
-ON [dbo].[Vehiculo]
-AFTER UPDATE
+CREATE TRIGGER trg_AfterInsertVenta_ReporteMensual
+ON Venta
+AFTER INSERT
 AS
 BEGIN
-    DECLARE @id_vehiculo INT, @precio_anterior DECIMAL(18, 2), @precio_nuevo DECIMAL(18, 2);
+    DECLARE @fecha DATETIME;
+    DECLARE @mes INT;
+    DECLARE @anio INT;
 
-    -- Obtener los datos del precio anterior y el nuevo precio
-    SELECT @id_vehiculo = id_vehiculo, @precio_anterior = deleted.precio, @precio_nuevo = inserted.precio
-    FROM DELETED deleted
-    JOIN INSERTED inserted ON deleted.id_vehiculo = inserted.id_vehiculo
-    WHERE deleted.precio != inserted.precio;
+    -- Obtener la fecha de la venta insertada
+    SELECT @fecha = fecha FROM inserted;
 
-    -- Insertar el historial de precios en la tabla HistorialPrecioVehiculo
-    INSERT INTO HistorialPrecioVehiculo (id_vehiculo, precio_anterior, precio_nuevo, fecha_cambio)
-    VALUES (@id_vehiculo, @precio_anterior, @precio_nuevo, GETDATE());
+    -- Extraer el mes y año de la fecha de la venta
+    SET @mes = MONTH(@fecha);
+    SET @anio = YEAR(@fecha);
+
+    -- Comprobar si la venta pertenece al mes y año de interés
+    -- Aquí podrías agregar un proceso que active algún reporte o log
+    PRINT 'Nueva venta registrada. Fecha: ' + CAST(@fecha AS NVARCHAR(20)) + 
+          ', Mes: ' + CAST(@mes AS NVARCHAR(2)) + ', Año: ' + CAST(@anio AS NVARCHAR(4));
+
 END;
 GO
+
+CREATE TRIGGER trg_AfterInsertDetalleVenta
+ON DetalleVenta
+AFTER INSERT
+AS
+BEGIN
+    DECLARE @id_vehiculo INT;
+    DECLARE @id_cliente INT;
+    DECLARE @id_venta INT;
+    DECLARE @pago_inicial DECIMAL(18, 2);
+
+    -- Obtener los datos del detalle de la venta insertada
+    SELECT @id_vehiculo = id_vehiculo, @id_cliente = id_cliente, @id_venta = id_venta, @pago_inicial = pago_inicial
+    FROM inserted;
+
+    -- Imprimir mensaje con detalles de la venta
+    PRINT 'Detalle de venta registrado: ID Venta: ' + CAST(@id_venta AS NVARCHAR(10)) + ', Vehículo ID: ' + CAST(@id_vehiculo AS NVARCHAR(10)) + ', Cliente ID: ' + CAST(@id_cliente AS NVARCHAR(10)) + ', Pago Inicial: ' + CAST(@pago_inicial AS NVARCHAR(18));
+END;
+GO
+
+
+
+--Prubas
+-- Registrar un cliente
+EXEC RegistrarCliente
+    @nombre = 'Juan Pérez',
+    @telefono = '987654321',
+    @RUC = '22345678402',
+    @dni = '113456078';
+
+
+	-- Registrar un vehículo para el cliente
+EXEC RegistrarVehiculo
+    @id_cliente = 1, 
+    @precio = 15000.00,
+    @año = 2020,
+    @id_marca = 1,  
+    @modelo = 'Toyota Corolla',
+    @potencia = '150 HP',
+    @kms = 12000.00;
+
+	-- Registrar una venta (no funciona con el GETDATE())
+EXEC InsertarVenta 
+    @id_empleado = 1, 
+    @fecha = '2024-12-02 10:30:00', 
+    @id_tipoC = 1, 
+    @id_cliente = 1, 
+    @id_vehiculo = 1, 
+    @pago_inicial = 5000.00, 
+    @id_metodo_pago = 1;
+
+
+
+	DELETE FROM Venta
+WHERE id_venta = (SELECT MAX(id_venta) FROM Venta); 
+
+-- Primero, insertar una venta para asegurarte de que hay una venta para eliminar
+EXEC InsertarVenta
+    @id_empleado = 1, 
+    @fecha = '2024-12-10',  
+    @id_tipoC = 1, 
+    @id_cliente = 3,  
+    @id_vehiculo = 4, 
+    @pago_inicial = 2000.00,  
+    @id_metodo_pago = 1;
+
+
+-- Primero, insertar una venta para asegurarte de que hay una venta para eliminar
+EXEC InsertarVenta
+    @id_empleado = 1, 
+    @fecha = '2024-12-10',  
+    @id_tipoC = 1, 
+    @id_cliente = 3,  
+    @id_vehiculo = 4, 
+    @pago_inicial = 2000.00,  
+    @id_metodo_pago = 1;
+
+
+-- Ejecutar el procedimiento de eliminación de venta
+EXEC EliminarVenta
+    @id_venta = 1;  -
+
+

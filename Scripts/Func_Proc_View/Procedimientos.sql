@@ -29,9 +29,12 @@ END
 
 GO
 --Registrar una venta con comprobante electrónico
-CREATE PROCEDURE InsertarVenta(
+-- Procedimiento InsertarVenta con GETDATE() directamente
+
+-- Procedimiento InsertarVenta con GETDATE() directamente
+CREATE PROCEDURE InsertarVenta (
     @id_empleado INT,
-    @fecha DATETIME,
+    @fecha DATETIME = NULL,  -- Se permite un valor NULL para la fecha
     @id_tipoC INT,
     @id_cliente INT,
     @id_vehiculo INT,
@@ -40,6 +43,12 @@ CREATE PROCEDURE InsertarVenta(
 )
 AS
 BEGIN
+    -- Si no se pasa la fecha, usar GETDATE() por defecto
+    IF @fecha IS NULL
+    BEGIN
+        SET @fecha = GETDATE();  -- Asignar la fecha y hora actuales
+    END
+
     -- Variable para almacenar el ID de la nueva venta
     DECLARE @id_venta INT;
 
@@ -55,20 +64,16 @@ BEGIN
         SET @id_venta = SCOPE_IDENTITY();
 
         -- Insertar detalles de la venta en la tabla DetalleVenta
-        INSERT INTO DetalleVenta (id_venta, id_vehiculo, id_metodo_pago, pago_inicial, id_cliente, re_registro)
-        VALUES (@id_venta, @id_vehiculo, @id_metodo_pago, @pago_inicial, @id_cliente, 0);
+        INSERT INTO DetalleVenta (id_venta, id_vehiculo, id_metodo_pago, pago_inicial, saldo_pendiente, id_cliente, re_registro)
+        VALUES (@id_venta, @id_vehiculo, @id_metodo_pago, @pago_inicial, 0, @id_cliente, 0);
 
         -- Actualizar el estado del vehículo a no disponible (estado = 0)
         UPDATE Vehiculo
-        SET estado = 0 -- No disponible
+        SET estado = 0  -- No disponible
         WHERE id_vehiculo = @id_vehiculo;
 
-		UPDATE DetalleVenta
-		SET saldo_pendiente = v.precio - @pago_inicial
-		FROM DetalleVenta d
-		JOIN Vehiculo v ON d.id_vehiculo = v.id_vehiculo
-		WHERE d.id_venta = @id_venta;
-
+        -- Mensaje de confirmación de la venta registrada
+        PRINT 'Venta registrada exitosamente.';
 
         -- Si todo ha ido bien, confirmamos la transacción
         COMMIT TRANSACTION;
@@ -76,11 +81,14 @@ BEGIN
     BEGIN CATCH
         -- Si ocurre un error, hacemos un rollback
         ROLLBACK TRANSACTION;
+        -- Mensaje de error
+        PRINT 'Error: No se pudo registrar la venta.';
         -- Opcionalmente, lanzar el error para capturarlo en la capa de aplicación
         THROW;
     END CATCH
 END;
 GO
+DROP PROCEDURE IF EXISTS EliminarVenta;
 
 CREATE PROCEDURE EliminarVenta(
     @id_venta INT
@@ -95,15 +103,13 @@ BEGIN
         DELETE FROM DetalleVenta
         WHERE id_venta = @id_venta;
 
-        -- Restaurar el estado del vehículo a disponible (estado = 1)
-        -- Para hacerlo, primero necesitamos obtener el id_vehiculo asociado
+        -- Obtener el id_vehiculo asociado a la venta eliminada
         DECLARE @id_vehiculo INT;
-        
         SELECT @id_vehiculo = id_vehiculo
         FROM DetalleVenta
         WHERE id_venta = @id_venta;
 
-        -- Restauramos el vehículo a estado disponible
+        -- Restaurar el estado del vehículo a disponible (estado = 1)
         UPDATE Vehiculo
         SET estado = 1  -- Disponible
         WHERE id_vehiculo = @id_vehiculo;
@@ -114,6 +120,9 @@ BEGIN
 
         -- Si todo ha ido bien, confirmamos la transacción
         COMMIT TRANSACTION;
+
+        -- Imprimir mensaje indicando que la venta fue eliminada
+        PRINT 'Venta eliminada con éxito. ID Venta: ' + CAST(@id_venta AS NVARCHAR(10));
     END TRY
     BEGIN CATCH
         -- Si ocurre un error, hacemos un rollback
@@ -123,6 +132,7 @@ BEGIN
     END CATCH
 END;
 GO
+
 CREATE PROCEDURE ConsultarVenta(
     @id_venta INT
 )
@@ -191,66 +201,109 @@ GO
 	
 --Generar un reporte de ventas mensuales
 CREATE PROCEDURE ReporteVentasMensuales (
-@mes INT,
-@anio INT
+    @mes INT,
+    @anio INT
 )
 AS
 BEGIN
-SELECT
-v.id_venta,
-c.nombre AS nombre_cliente,
-e.nombre AS nombre_empleado,
-v.fecha,
-v.pago_inicial + v.saldo_pendiente AS total_pagado,
-v.metodo_pago
-FROM Venta v
-JOIN Cliente c ON v.id_cliente = c.id_cliente
-JOIN Empleado e ON v.id_empleado = e.id_empleado
-WHERE MONTH(v.fecha) = @mes AND YEAR(v.fecha) = @anio;
+    SELECT
+        v.id_venta,
+        c.nombre AS nombre_cliente,
+        e.nombre AS nombre_empleado,
+        v.fecha,
+        dv.pago_inicial + dv.saldo_pendiente AS total_pagado,
+        mp.tipo -- Aquí se hace el JOIN con la tabla Metodo_Pago para obtener el nombre del metodo de pago
+    FROM Venta v
+    JOIN DetalleVenta dv ON v.id_venta = dv.id_venta -- Unimos con DetalleVenta para obtener el pago inicial y saldo pendiente
+    JOIN Cliente c ON dv.id_cliente = c.id_cliente
+    JOIN Empleado e ON v.id_empleado = e.id_empleado
+    JOIN Metodo_Pago mp ON dv.id_metodo_pago = mp.id_metodo_pago -- Unimos con Metodo_Pago para obtener el metodo de pago
+    WHERE MONTH(v.fecha) = @mes AND YEAR(v.fecha) = @anio;
 END;
 GO
 
+
 -- AgreaciOn de %ROWTYPE, %TYPE
   
-CREATE OR REPLACE PROCEDURE insertar_cliente_nuevo IS
-    nuevo_cliente Cliente%ROWTYPE;  
+CREATE PROCEDURE insertar_cliente_nuevo
+AS
 BEGIN
-    -- Asignar valores a los campos del cliente nuevo
-    nuevo_cliente.nombre := 'Carlos Gómez';
-    nuevo_cliente.telefono := '987654321';
-    nuevo_cliente.direccion := 'Calle Ejemplo 123';
-    nuevo_cliente.email := 'carlos.gomez@mail.com';
-    nuevo_cliente.historia_compras := NULL;  
-
-    INSERT INTO Cliente VALUES nuevo_cliente;
-END;
-
-
-CREATE OR REPLACE PROCEDURE registrar_venta_detallada(
-    p_nombre_cliente Cliente.nombre%TYPE,  
-    p_modelo_vehiculo Vehiculo.modelo%TYPE,  
-    p_precio_detalle Venta.precio%TYPE  
-) IS
-    nueva_venta Venta%ROWTYPE;   
-    id_vehiculo Vehiculo.id_vehiculo%TYPE;  
-BEGIN
-    SELECT id_vehiculo INTO id_vehiculo
-    FROM Vehiculo
-    WHERE modelo = p_modelo_vehiculo;
-
-    nueva_venta.id_cliente := (SELECT id FROM Cliente WHERE nombre = p_nombre_cliente);
-    nueva_venta.id_empleado := (SELECT id FROM Empleado WHERE nombre = 'Carlos Gómez');
-    nueva_venta.tipo_comprobante := 'Factura';
-    nueva_venta.fecha := SYSDATE;
-    nueva_venta.pago_inicial := 3000.00;
-    nueva_venta.metodo_pago := 'Efectivo';
-
-    INSERT INTO Venta VALUES nueva_venta;
-
-    INSERT INTO Detalle_Venta (id_venta, id_vehiculo, precio)
-    VALUES (
-        nueva_venta.id_venta,
-        id_vehiculo,
-        p_precio_detalle
+    -- Declarar una variable tipo tabla para emular una fila
+    DECLARE @nuevo_cliente TABLE (
+        nombre NVARCHAR(100),
+        telefono NVARCHAR(20),
+        RUC NVARCHAR(20),
+        dni NVARCHAR(15)
     );
+
+    -- Insertar los datos del nuevo cliente en la tabla temporal
+    INSERT INTO @nuevo_cliente (nombre, telefono, RUC, dni)
+    VALUES ('Carlos Gómez', '987654321', '12345678910', '12345678');
+
+    -- Verificar si el RUC o el DNI ya están registrados
+    IF EXISTS (SELECT 1 FROM Cliente WHERE RUC = (SELECT RUC FROM @nuevo_cliente))
+    BEGIN
+        PRINT 'Error: El RUC ya está registrado.';
+        RETURN;
+    END
+
+    IF EXISTS (SELECT 1 FROM Cliente WHERE dni = (SELECT dni FROM @nuevo_cliente))
+    BEGIN
+        PRINT 'Error: El DNI ya está registrado.';
+        RETURN;
+    END
+
+    -- Insertar el nuevo cliente en la tabla Cliente desde la tabla temporal
+    INSERT INTO Cliente (nombre, telefono, RUC, dni)
+    SELECT nombre, telefono, RUC, dni FROM @nuevo_cliente;
+
+    PRINT 'Cliente registrado exitosamente.';
 END;
+GO
+
+
+
+
+CREATE PROCEDURE registrar_venta_detallada
+    @p_nombre_cliente NVARCHAR(100),   -- Nombre del cliente
+    @p_modelo_vehiculo NVARCHAR(100),  -- Modelo del vehículo
+    @p_precio_detalle DECIMAL(18,2)    -- Precio del detalle
+AS
+BEGIN
+    DECLARE @id_vehiculo INT;           -- Variable para almacenar el id del vehículo
+    DECLARE @id_cliente INT;            -- Variable para almacenar el id del cliente
+    DECLARE @id_empleado INT = 1;       -- Asumiendo que el empleado tiene id 1 (Carlos Gómez)
+    DECLARE @id_tipoC INT = 1;          -- Asumiendo que el tipo de comprobante es 1 (Factura)
+    DECLARE @id_venta INT;              -- Variable para almacenar el id de la nueva venta
+    DECLARE @fecha DATETIME = GETDATE(); -- Fecha de la venta (actual)
+
+    -- Obtener el id del vehículo según el modelo
+    SELECT @id_vehiculo = id_vehiculo
+    FROM Detalle_Vehiculo
+    WHERE modelo = @p_modelo_vehiculo;
+
+    -- Verificar que el cliente existe
+    SELECT @id_cliente = id_cliente
+    FROM Cliente
+    WHERE nombre = @p_nombre_cliente;
+
+    IF @id_cliente IS NULL
+    BEGIN
+        PRINT 'Error: Cliente no encontrado.';
+        RETURN;
+    END
+
+    -- Insertar una nueva venta
+    INSERT INTO Venta (id_empleado, fecha, id_tipoC)
+    VALUES (@id_empleado, @fecha, @id_tipoC);
+
+    -- Obtener el id de la nueva venta
+    SET @id_venta = SCOPE_IDENTITY();
+
+    -- Insertar los detalles de la venta en DetalleVenta
+    INSERT INTO DetalleVenta (id_venta, id_vehiculo, id_metodo_pago, pago_inicial, saldo_pendiente, id_cliente, re_registro)
+    VALUES (@id_venta, @id_vehiculo, 1, 3000.00, @p_precio_detalle - 3000.00, @id_cliente, 0);
+
+    PRINT 'Venta registrada exitosamente.';
+END;
+GO
