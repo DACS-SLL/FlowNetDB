@@ -1,197 +1,113 @@
-
 USE FlowNet;
+GO
+-- Trigger 1: Verificar existencia de RUC antes de insertar un cliente
+-- Este trigger se ejecuta antes de insertar un cliente, verificando si el RUC ya existe en la base de datos
+CREATE TRIGGER VerificarRUC
+ON [dbo].[Cliente]
+AFTER INSERT
+AS
+BEGIN
+    DECLARE @RUC NVARCHAR(20);
 
-SELECT * 
-FROM sys.procedures;
+    -- Obtener el RUC del cliente insertado
+    SELECT @RUC = RUC FROM INSERTED;
 
-SELECT * 
-FROM sys.views;
-
-SELECT * 
-FROM sys.objects 
-WHERE type IN ('FN', 'IF', 'TF');
-
-
-EXEC sp_helptext 'CalcularComisionTotalEmpleado';
-
-
-
-USE FlowNet2;
-
-SELECT name, parent_class_desc, create_date
-FROM sys.triggers;
-
-EXEC sp_helptext 'ActualizarInventarioVehiculo';
-DECLARE @id_vehiculo INT;
-
-SET @id_vehiculo = 1;
-
-INSERT INTO Venta (id_empleado, fecha, id_tipoC, XMLSUNAT)
-VALUES (1, GETDATE(), 1, '<xml>Ejemplo</xml>');
-
-SELECT estado FROM Vehiculo WHERE id_vehiculo = @id_vehiculo;
+    -- Verificar si el RUC ya existe en la tabla Cliente
+    IF EXISTS (SELECT 1 FROM [dbo].[Cliente] WHERE RUC = @RUC)
+    BEGIN
+        PRINT 'Error: El RUC ya está registrado.'; -- Mensaje de error si el RUC ya existe
+        ROLLBACK TRANSACTION; -- Cancelar la transacción
+    END
+END;
+GO
 
 
-INSERT INTO Venta (id_empleado, fecha, id_tipoC, XMLSUNAT)
-VALUES (2, GETDATE(), 2, '<xml>Ejemplo</xml>');
-
-SELECT comisiones FROM EmpleadoVentas WHERE id_empleado = 2;
-
-INSERT INTO Pagos (id_venta, monto) VALUES (1, 500);
-SELECT saldo_pendiente FROM DetalleVenta WHERE id_venta = 1;
-
-
--- Antes del Trigger 1: crear la columna Estado 
-alter table Vehiculo
-add estado nvarchar(10)
-go
--- Trigger 1: Actualizar inventario de vehículos después de una venta
-CREATE TRIGGER ActualizarInventarioVehiculo
-ON Vehiculo
+-- Trigger 2: Actualizar estado de vehículo al insertar una venta
+-- Este trigger se ejecuta después de insertar una venta y actualiza el estado del vehículo a "no disponible"
+CREATE TRIGGER ActualizarEstadoVehiculo
+ON [dbo].[DetalleVenta]
 AFTER INSERT
 AS
 BEGIN
     DECLARE @id_vehiculo INT;
 
-    -- Obtener el id_vehiculo de la nueva venta
-    SELECT @id_vehiculo = id_vehiculo
-    FROM inserted;
+    -- Obtener el ID del vehículo de la venta insertada
+    SELECT @id_vehiculo = id_vehiculo FROM INSERTED;
 
-    -- Actualizar el estado del vehículo a "Vendido"
+    -- Actualizar el estado del vehículo a "no disponible" (estado = 0)
     UPDATE Vehiculo
-    SET estado = 'Vendido'
+    SET estado = 0
     WHERE id_vehiculo = @id_vehiculo;
 END;
 GO
 
--- Trigger 2: Calcular comisiones de vendedores después de una venta
-CREATE TRIGGER CalcularComisionVenta
-ON Venta
+
+-- Trigger 3: Calcular saldo pendiente al insertar una venta
+-- Este trigger se ejecuta después de insertar una venta, calculando el saldo pendiente basado en el precio del vehículo y el pago inicial
+CREATE TRIGGER CalcularSaldoPendiente
+ON [dbo].[DetalleVenta]
 AFTER INSERT
 AS
 BEGIN
-    DECLARE @idVenta INT;
-    DECLARE @idEmpleado INT;
-    DECLARE @totalVenta DECIMAL(18, 2);
-    DECLARE @comision DECIMAL(18, 2);
+    DECLARE @id_venta INT, @pago_inicial DECIMAL(18, 2), @precio DECIMAL(18, 2);
 
-    -- Asumimos que la comisión es del 5%
-    DECLARE @porcentajeComision DECIMAL(5, 2) = 0.05;
-
-    -- Obtener la información de la venta registrada
-    SELECT @idVenta = id_venta, @idEmpleado = id_empleado
+    -- Obtener el ID de la venta y el pago inicial de la tabla INSERTED
+    SELECT @id_venta = id_venta, @pago_inicial = pago_inicial
     FROM INSERTED;
 
-    -- Calcular el total de la venta sumando los precios de los vehículos involucrados en ella
-    SELECT @totalVenta = SUM(v.precio)
-    FROM DetalleVenta dv
-    JOIN Vehiculo v ON dv.id_vehiculo = v.id_vehiculo
-    WHERE dv.id_venta = @idVenta;
+    -- Obtener el precio del vehículo de la tabla Vehiculo
+    SELECT @precio = precio
+    FROM Vehiculo v
+    JOIN DetalleVenta dv ON v.id_vehiculo = dv.id_vehiculo
+    WHERE dv.id_venta = @id_venta;
 
-    -- Calcular la comisión basada en el porcentaje
-    SET @comision = @totalVenta * @porcentajeComision;
-
-    -- Actualizar el campo de comisiones en EmpleadoVentas
-    UPDATE EmpleadoVentas
-    SET comisiones = comisiones + @comision
-    WHERE id_empleado = @idEmpleado;
-END;
-GO
-
--- Trigger 3: Registrar el historial de mantenimiento de un vehículo
-CREATE TRIGGER RegistrarHistorialMantenimiento
-ON Mantenimiento
-AFTER INSERT
-AS
-BEGIN
-    DECLARE @idMantenimiento INT;
-    DECLARE @idVehiculo INT;
-    DECLARE @fecha DATETIME;
-    DECLARE @tipo NVARCHAR(50);
-     
-
-    -- Obtener los datos del mantenimiento desde la tabla INSERTED
-    SELECT 
-        @idMantenimiento = id_mantenimiento,
-        @idVehiculo = id_vehiculo,
-        @fecha = fecha,
-        @tipo = tipo
-        
-    FROM INSERTED;
-
-    -- Insertar un nuevo registro en HistorialMantenimiento con los datos del mantenimiento
-    INSERT INTO HistorialMantenimiento (id_vehiculo, id_mantenimiento, fecha, tipo)
-    VALUES (@idVehiculo, @idMantenimiento, @fecha, @tipo);
-END;
-GO
-
--- Trigger 4: Controlar la capacidad disponible en los talleres
-CREATE TRIGGER ControlCapacidadTaller
-ON Mantenimiento
-AFTER INSERT
-AS
-BEGIN
-    DECLARE @idTaller INT;
-    DECLARE @capacidadActual INT;
-
-    -- Obtener el ID del taller desde la tabla INSERTED
-    SELECT @idTaller = id_taller
-    FROM INSERTED;
-
-    -- Obtener la capacidad actual del taller
-    SELECT @capacidadActual = capacidad
-    FROM Taller
-    WHERE id_taller = @idTaller;
-
-    -- Verificar si el taller tiene capacidad
-    IF @capacidadActual > 0
-    BEGIN
-        -- Actualizar la capacidad del taller restando 1
-        UPDATE Taller
-        SET capacidad = capacidad - 1
-        WHERE id_taller = @idTaller;
-    END
-    ELSE
-    BEGIN
-        -- Si no hay capacidad disponible, revertir la operación de inserción y mostrar un mensaje de error
-        RAISERROR ('No hay capacidad disponible en el taller seleccionado.', 16, 1);
-        ROLLBACK TRANSACTION;
-    END
-END;
-GO
--- Antes del Trigger 5: Crear una tabla Pagos para registrar cada pago que se haga
-CREATE TABLE Pagos (
-    id_pago INT PRIMARY KEY IDENTITY(1,1),
-    id_venta INT,                  -- Relaciona el pago con una venta
-    monto DECIMAL(18, 2) NOT NULL, -- Monto del pago realizado
-    fecha DATETIME DEFAULT GETDATE(),
-    FOREIGN KEY (id_venta) REFERENCES Venta(id_venta)
-);
-GO
-
--- Trigger 5: Actualizar el saldo pendiente después de un pago
-CREATE TRIGGER trg_ActualizarSaldoPendiente
-ON Pagos
-AFTER INSERT
-AS
-BEGIN
-    DECLARE @idVenta INT;
-    DECLARE @montoPago DECIMAL(18, 2);
-
-    -- Obtener el ID de la venta y el monto del pago desde la tabla INSERTED
-    SELECT 
-        @idVenta = id_venta,
-        @montoPago = monto
-    FROM INSERTED;
-
-    -- Actualizar el saldo pendiente en la tabla DetalleVenta
+    -- Actualizar el saldo pendiente en DetalleVenta
     UPDATE DetalleVenta
-    SET saldo_pendiente = saldo_pendiente - @montoPago
-    WHERE id_venta = @idVenta;
+    SET saldo_pendiente = @precio - @pago_inicial
+    WHERE id_venta = @id_venta;
+END;
+GO
 
-    -- Verificar si el saldo pendiente es menor que cero y ajustarlo a cero
-    UPDATE DetalleVenta
-    SET saldo_pendiente = 0
-    WHERE id_venta = @idVenta AND saldo_pendiente < 0;
+
+-- Trigger 4: Restaurar vehículo a disponible cuando se elimina una venta
+-- Este trigger se ejecuta después de eliminar una venta y devuelve el estado del vehículo a "disponible" (estado = 1)
+CREATE TRIGGER RestaurarVehiculoEstado
+ON [dbo].[Venta]
+AFTER DELETE
+AS
+BEGIN
+    DECLARE @id_vehiculo INT;
+
+    -- Obtener el ID del vehículo asociado con la venta eliminada
+    SELECT @id_vehiculo = id_vehiculo
+    FROM DetalleVenta
+    WHERE id_venta IN (SELECT id_venta FROM DELETED);
+
+    -- Restaurar el estado del vehículo a "disponible" (estado = 1)
+    UPDATE Vehiculo
+    SET estado = 1
+    WHERE id_vehiculo = @id_vehiculo;
+END;
+GO
+
+
+-- Trigger 5: Generar un historial de cambios de precio de vehículos
+-- Este trigger guarda el historial de precios cuando se actualiza el precio de un vehículo
+CREATE TRIGGER RegistrarCambioPrecioVehiculo
+ON [dbo].[Vehiculo]
+AFTER UPDATE
+AS
+BEGIN
+    DECLARE @id_vehiculo INT, @precio_anterior DECIMAL(18, 2), @precio_nuevo DECIMAL(18, 2);
+
+    -- Obtener los datos del precio anterior y el nuevo precio
+    SELECT @id_vehiculo = id_vehiculo, @precio_anterior = deleted.precio, @precio_nuevo = inserted.precio
+    FROM DELETED deleted
+    JOIN INSERTED inserted ON deleted.id_vehiculo = inserted.id_vehiculo
+    WHERE deleted.precio != inserted.precio;
+
+    -- Insertar el historial de precios en la tabla HistorialPrecioVehiculo
+    INSERT INTO HistorialPrecioVehiculo (id_vehiculo, precio_anterior, precio_nuevo, fecha_cambio)
+    VALUES (@id_vehiculo, @precio_anterior, @precio_nuevo, GETDATE());
 END;
 GO
