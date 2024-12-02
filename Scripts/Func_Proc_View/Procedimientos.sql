@@ -88,6 +88,7 @@ BEGIN
     END CATCH
 END;
 GO
+
 DROP PROCEDURE IF EXISTS EliminarVenta;
 
 CREATE PROCEDURE EliminarVenta(
@@ -260,9 +261,6 @@ BEGIN
     PRINT 'Cliente registrado exitosamente.';
 END;
 GO
-
-
-
 
 CREATE PROCEDURE registrar_venta_detallada
     @p_nombre_cliente NVARCHAR(100),   -- Nombre del cliente
